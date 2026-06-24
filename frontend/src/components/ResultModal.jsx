@@ -64,8 +64,9 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
     const accuracyCrit = criteria.find((c) => c.key === 'accuracy')
     const effCrits = criteria.filter((c) => c.key !== 'accuracy')
     const failCount = totalCases - passedCases
-    // accuracy is the gate: no test passed -> efficiency is moot (backend already zeroes it).
-    const gated = total > 0 && passed === 0
+    // accuracy is the gate: efficiency counts toward the score ONLY when every hidden test
+    // passes (matches scoring.evaluate's fully_passed). Any miss -> backend zeroes efficiency.
+    const gated = !(total > 0 && passed === total)
     const verdict =
         total > 0 && passed === total ? '통과' : passed > 0 ? '부분 통과' : '미통과'
     // verdict badge tone matches the progress-bar colors: 통과→green, 부분 통과→amber, 미통과→red.
@@ -119,7 +120,7 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
                         {accuracyCrit && (
                             <Section
                                 title="정확도"
-                                subtitle="채점 게이트"
+                                subtitle="점수 핵심 지표"
                                 aside={
                                     <span className="mono" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>
                                         {passedCases} 통과 ·{' '}
@@ -143,7 +144,7 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
                             </Section>
                         )}
 
-                        {/* efficiency — only meaningful when at least one test passed */}
+                        {/* efficiency — only counts toward the score when all hidden tests pass */}
                         {effCrits.length > 0 && (
                             <Section
                                 title="효율성"
@@ -152,8 +153,10 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
                             >
                                 {gated ? (
                                     <div className={styles.gateNote}>
-                                        정확도 0 · 통과한 테스트가 없어 효율성은 채점되지 않았어요. 효율성은 정답을
-                                        맞힌 뒤에야 점수에 반영돼요.
+                                        효율성은 히든 테스트를 <strong>전부 통과</strong>해야 점수에 반영돼요.{' '}
+                                        {totalCases === 0
+                                            ? '채점할 히든 테스트가 없어 이번엔 적용되지 않았어요.'
+                                            : '아직 통과하지 못한 케이스가 있어 이번 제출에서는 채점되지 않았어요.'}
                                     </div>
                                 ) : (
                                     <div className={styles.criteria}>
