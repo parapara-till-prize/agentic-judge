@@ -1,0 +1,59 @@
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+.intro {
+  background: var(--d-intro-bg);
+  color: var(--d-intro-fg);
+}
+.basic {
+  background: var(--d-basic-bg);
+  color: var(--d-basic-fg);
+}
+.mid {
+  background: var(--d-mid-bg);
+  color: var(--d-mid-fg);
+}
+.hard {
+  background: var(--d-hard-bg);
+  color: var(--d-hard-fg);
+}
+
+.domain {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.chip {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--chip-bg);
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.statusDot {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.done {
+  background: var(--accent);
+  color: #fff;
+}
+.todo {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+}

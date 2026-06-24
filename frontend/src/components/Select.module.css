@@ -1,0 +1,78 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  line-height: 1;
+  transition:
+    background 0.1s ease,
+    border-color 0.1s ease;
+}
+.trigger:hover {
+  background: var(--surface-2);
+}
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft-bg);
+}
+.trigger[data-state='open'] {
+  border-color: var(--accent);
+}
+.icon {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.trigger[data-state='open'] .icon {
+  color: var(--accent);
+}
+
+.content {
+  min-width: var(--radix-select-trigger-width);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  padding: 5px;
+  z-index: 50;
+  animation: rx-pop 0.12s ease;
+}
+.viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+.item[data-highlighted] {
+  background: var(--surface-2);
+  color: var(--text-h);
+}
+.item[data-state='checked'] {
+  color: var(--text-h);
+  font-weight: 600;
+}
+.indicator {
+  color: var(--accent);
+  font-size: 11px;
+}

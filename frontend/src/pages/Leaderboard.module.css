@@ -1,0 +1,114 @@
+.stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+.lbHeader {
+  padding: 22px 26px 0;
+}
+.lbTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-h);
+}
+.lbSub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.tabs {
+  padding: 0;
+  margin-top: 18px;
+}
+
+.head,
+.row {
+  display: grid;
+  grid-template-columns: 64px 1fr 110px 130px 130px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 26px;
+}
+.head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border-soft);
+}
+.row {
+  border-bottom: 1px solid var(--border-faint);
+}
+.rank {
+  font-size: 14px;
+  font-weight: 700;
+}
+.name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.nameText {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.cell {
+  font-size: 13px;
+  color: var(--text-h);
+  text-align: right;
+}
+
+/* scoring module explainer */
+.explainer {
+  padding: 22px;
+}
+.explainerTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+.explainerSub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 5px;
+  line-height: 1.6;
+}
+.presets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+.preset {
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.axes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.axis {
+  font-size: 11.5px;
+  color: var(--text-h);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+.axisPrimary {
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-soft-border);
+}

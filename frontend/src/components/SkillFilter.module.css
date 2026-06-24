@@ -1,0 +1,74 @@
+.trigger {
+  cursor: pointer;
+}
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft-bg);
+}
+.trigger[data-state='open'] {
+  border-color: var(--accent);
+  color: var(--text-h);
+}
+
+.menu {
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  padding: 6px;
+  z-index: 50;
+  animation: rx-pop 0.12s ease;
+}
+.label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  padding: 4px 8px 6px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  padding: 7px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+.item[data-highlighted] {
+  background: var(--surface-2);
+  color: var(--text-h);
+}
+.check {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.item[data-state='checked'] .check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.sep {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 5px 0;
+}
+.reset {
+  color: var(--text-dim);
+  font-size: 12px;
+  justify-content: center;
+}

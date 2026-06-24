@@ -1,0 +1,185 @@
+/* Global design-system layer.
+   Tokens live in index.css. These are the reusable primitives + utilities
+   that JSX references as plain string classNames across many screens.
+   Component/page-specific structure lives in co-located *.module.css files. */
+
+/* ===== layout shells ===== */
+.app {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+.page--wide {
+  max-width: 1760px;
+}
+.page--narrow {
+  max-width: 1000px;
+}
+
+/* ===== card ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.card--flush {
+  overflow: hidden;
+}
+
+/* ===== buttons ===== */
+.btn {
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  transition: background 0.12s ease;
+}
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn--primary:hover {
+  background: var(--accent-strong);
+}
+.btn--ghost {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-h);
+}
+.btn--ghost:hover {
+  background: var(--surface-2);
+}
+.btn--dark {
+  background: var(--text-h);
+  color: var(--surface);
+  border-radius: 6px;
+}
+.btn--lg {
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 32px;
+}
+.btn--block {
+  flex: 1;
+}
+
+/* ===== tabs (tracks) — shared by Home + Leaderboard ===== */
+.tracks {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.tracks button {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 13px 14px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tracks button.active {
+  color: var(--text-h);
+  font-weight: 700;
+  border-bottom-color: var(--accent);
+}
+.tracks button:disabled {
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+/* ===== filter pill — base shared by Home spans + Radix Toggle/SkillFilter ===== */
+.filter-pill {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.filter-pill.active {
+  color: var(--text-h);
+  font-weight: 600;
+  background: var(--surface-2);
+}
+
+/* ===== code block — shared by ProblemDetail + Workspace ===== */
+.code-block {
+  margin: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-h);
+  overflow: auto;
+}
+
+/* ===== frame label — shared small caption ===== */
+.frame-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+/* ===== syntax-highlight tokens (applied via dynamic classNames) ===== */
+.tok-kw {
+  color: #7c3aed;
+}
+.tok-fn {
+  color: #0891b2;
+}
+.tok-num {
+  color: var(--accent);
+}
+.tok-cmt {
+  color: var(--text-dim);
+}
+.tok-ln {
+  color: var(--text-faint);
+  user-select: none;
+}
+
+/* ===== utilities ===== */
+.t-right {
+  text-align: right;
+}
+.t-center {
+  text-align: center;
+}
+.muted {
+  color: var(--text-dim);
+}
+.flex {
+  display: flex;
+}
+.section-divider {
+  border-top: 1px solid var(--border-soft);
+}
+
+/* shared popover animation referenced by Radix modules */
+@keyframes rx-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
