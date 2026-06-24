@@ -97,8 +97,8 @@ export default function LoginModal() {
             {mut.isError && (
               <div className={styles.error}>
                 {mode === 'login'
-                  ? '아이디 또는 비밀번호가 올바르지 않습니다.'
-                  : mut.error?.message || '회원가입에 실패했습니다.'}
+                  ? '아이디 또는 비밀번호가 올바르지 않아요.'
+                  : mut.error?.message || '회원가입에 실패했어요.'}
               </div>
             )}
 

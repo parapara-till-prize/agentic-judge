@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Folder, Document, CheckmarkFilled, ErrorFilled } from '@carbon/icons-react'
+import { toast } from 'sonner'
+import { Folder, Document, CheckmarkFilled, ErrorFilled, Locked } from '@carbon/icons-react'
 import { Badge } from '../components/ui'
 import Markdown from '../components/Markdown'
 import { useProblem, useStartAttempt, useSubmit, useMe } from '../api/queries'
@@ -65,6 +66,12 @@ export default function Workspace() {
   const [leftW, setLeftW] = useState(340)
   const [rightW, setRightW] = useState(420)
 
+  // right pane is a vertical stack: file tree / code viewer / tests. tree+tests get pixel
+  // heights, the code viewer (flex:1) fills the middle.
+  const rightPaneRef = useRef(null)
+  const [treeH, setTreeH] = useState(150)
+  const [testsH, setTestsH] = useState(240)
+
   // start a drag on either splitter; clamps so the center pane keeps >=320px
   function startResize(side, e) {
     e.preventDefault()
@@ -94,6 +101,34 @@ export default function Workspace() {
     window.addEventListener('mouseup', onUp)
   }
 
+  // vertical splitters inside the right pane; clamp so the code viewer keeps room
+  function startVResize(which, e) {
+    e.preventDefault()
+    const startY = e.clientY
+    const startTree = treeH
+    const startTests = testsH
+    const total = rightPaneRef.current?.getBoundingClientRect().height ?? 800
+    const reserve = 180 // pane head + handles + code-viewer minimum
+    const onMove = (ev) => {
+      const dy = ev.clientY - startY
+      if (which === 'tree') {
+        setTreeH(Math.max(60, Math.min(total - startTests - reserve, startTree + dy)))
+      } else {
+        setTestsH(Math.max(80, Math.min(total - startTree - reserve, startTests - dy)))
+      }
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
   // Start a fresh attempt on entering a problem (or once auth becomes available).
   // StrictMode-safe: dev double-invokes this effect on mount, and React Query drops the
   // per-`mutate` onSuccess of the throwaway first mount — so we guard with an `ignore`
@@ -116,6 +151,10 @@ export default function Workspace() {
             files: d.files,
           })
         },
+        onError: (e) => {
+          if (ignore) return
+          toast.error('워크스페이스를 시작하지 못했어요', { description: e.message })
+        },
       },
     )
     return () => {
@@ -123,6 +162,15 @@ export default function Workspace() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, authed])
+
+  // hard gate: the workspace is auth-only. Once /auth/me resolves to anonymous, bounce back
+  // to the problem detail and pop the login modal so the page never renders for guests.
+  useEffect(() => {
+    if (meLoading || me) return
+    toast.info('계속하려면 로그인이 필요해요', { id: 'auth-required' })
+    openLogin()
+    navigate(`/problem/${id}`, { replace: true })
+  }, [me, meLoading, id, openLogin, navigate])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -185,6 +233,7 @@ export default function Workspace() {
     } catch (e) {
       endTurnError()
       setSendError(e.message)
+      toast.error('메시지를 전송하지 못했어요', { description: e.message })
     }
   }
 
@@ -201,12 +250,22 @@ export default function Workspace() {
       onSuccess: (d) => {
         setSubmitResult(d)
         setResultOpen(true)
+        if (d.total > 0) {
+          toast.success('성공적으로 제출했어요', {
+            description: `채점 결과 ${d.score}점 · 히든 테스트 ${d.passed}/${d.total} 통과`,
+          })
+        }
       },
+      onError: (e) => toast.error('제출하지 못했어요', { description: e.message }),
     })
   }
 
   const starting = authed && (startMut.isPending || (!attemptId && !startMut.isError))
   const title = problem?.title ?? '문제'
+
+  // don't render the workspace chrome for guests (or during the auth check) — the effect
+  // above redirects anonymous users and opens the login modal.
+  if (!me) return null
 
   return (
     <div className={styles.ws}>
@@ -288,18 +347,6 @@ export default function Workspace() {
 
           <div className={styles.scroll}>
             <div className={styles.chat}>
-              {!authed && !meLoading && (
-                <div className={styles.sysNote}>
-                  이 워크스페이스를 시작하려면 로그인이 필요합니다.{' '}
-                  <button
-                    className="btn btn--primary"
-                    style={{ marginTop: 10 }}
-                    onClick={openLogin}
-                  >
-                    로그인
-                  </button>
-                </div>
-              )}
               {starting && (
                 <div className={styles.sysNote}>워크스페이스를 준비하는 중…</div>
               )}
@@ -355,7 +402,7 @@ export default function Workspace() {
               </div>
             </div>
             <div className={styles.chatLock}>
-              🔒 코드 편집은 잠겨 있습니다. 변경은 오직 에이전트를 통해서만.
+              코드 편집은 잠겨 있어요. 변경은 에이전트를 통해서만 가능해요.
             </div>
           </div>
         </div>
@@ -369,12 +416,14 @@ export default function Workspace() {
         />
 
         {/* RIGHT: files + code + tests */}
-        <div className={styles.pane}>
+        <div className={styles.pane} ref={rightPaneRef}>
           <div className={styles.paneHead} style={{ justifyContent: 'space-between' }}>
             <span>파일</span>
-            <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>🔒 읽기 전용</span>
+            <span style={{ fontWeight: 400, color: 'var(--text-faint)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Locked size={13} /> 읽기 전용
+            </span>
           </div>
-          <div className={styles.filetree}>
+          <div className={styles.filetree} style={{ height: treeH }}>
             <div className={styles.ftRoot}>
               <Folder size={14} /> workspace
             </div>
@@ -387,11 +436,19 @@ export default function Workspace() {
             {files.length === 0 && <div className={styles.ftItem}>— 비어 있음 —</div>}
           </div>
 
+          {/* resizer: file tree | code viewer */}
+          <div
+            className={styles.vresizer}
+            onMouseDown={(e) => startVResize('tree', e)}
+            role="separator"
+            aria-orientation="horizontal"
+          />
+
           {/* code viewer */}
           <div className={styles.codeview}>
             <div className={styles.codeBar}>
               <span>{activePath ?? '—'}</span>
-              <span style={{ color: 'var(--text-dim)' }}>🔒</span>
+              <Locked size={13} style={{ color: 'var(--text-dim)' }} />
             </div>
             <pre>
               {(activeFile?.content ?? '').split('\n').map((line, i) => (
@@ -404,8 +461,16 @@ export default function Workspace() {
             </pre>
           </div>
 
+          {/* resizer: code viewer | tests */}
+          <div
+            className={styles.vresizer}
+            onMouseDown={(e) => startVResize('tests', e)}
+            role="separator"
+            aria-orientation="horizontal"
+          />
+
           {/* tests */}
-          <div className={styles.tests}>
+          <div className={styles.tests} style={{ height: testsH }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-h)' }}>
@@ -445,7 +510,7 @@ export default function Workspace() {
               ) : (
                 <div className={styles.testRow} style={{ color: 'var(--text-dim)' }}>
                   에이전트가 <span className="mono">run_command</span>로 예제 테스트를 실행하면
-                  결과가 여기 실시간으로 표시됩니다.
+                  결과가 여기 실시간으로 표시돼요.
                 </div>
               )}
             </div>
@@ -458,9 +523,9 @@ export default function Workspace() {
                 <span className={styles.tagHidden}>가려짐</span>
               </div>
               <div className={styles.hiddenBox}>
-                <div style={{ fontSize: 18, color: 'var(--text-faint)' }}>🔒</div>
+                <Locked size={18} style={{ color: 'var(--text-faint)' }} />
                 <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
-                  제출 후 공개됩니다
+                  제출 후 공개돼요
                 </div>
               </div>
             </div>
@@ -473,11 +538,14 @@ export default function Workspace() {
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
         title="워크스페이스를 나갈까요?"
-        message="나가면 지금 진행 중인 시도와 에이전트 대화가 사라집니다. 다시 들어오면 새 시도로 시작됩니다."
+        message="나가면 지금 진행 중인 시도와 에이전트 대화가 사라져요. 다시 들어오면 새 시도로 시작돼요."
         confirmLabel="나가기"
         cancelLabel="계속 풀기"
         danger
-        onConfirm={() => navigate(`/problem/${id}`)}
+        onConfirm={() => {
+          navigate(`/problem/${id}`)
+          toast.info('시도를 종료했어요')
+        }}
       />
     </div>
   )

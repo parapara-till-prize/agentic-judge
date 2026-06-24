@@ -1,6 +1,11 @@
 {
   "id": 1156,
   "title": "로그 재정렬 API",
+  "runtime": {
+    "image": "judge-py:base",
+    "test_cmd": "python3 -m pytest tests -q",
+    "grade_cmd": "python3 run_grade.py"
+  },
   "difficulty": "mid",
   "category": "API 구현",
   "domain": "backend",

@@ -8,10 +8,13 @@ client is OpenAI-compatible so a local Ollama and a hosted API are a one-line en
 """
 import json
 import os
+import uuid
 
 from openai import OpenAI
 
 import sandbox
+
+TOOL_NAMES = {"list_files", "read_file", "write_file", "run_command"}
 
 # --- model config (env; OpenAI-compatible so Ollama <-> hosted is a one-liner) ---------
 BASE_URL = os.environ.get("OPENAI_BASE_URL", "http://localhost:11434/v1")
@@ -83,6 +86,60 @@ def get_client() -> OpenAI:
     return OpenAI(base_url=BASE_URL, api_key=API_KEY)
 
 
+def _balanced_json_spans(text: str):
+    """Yield (start, end) spans of top-level {...} blocks in text."""
+    depth = 0
+    start = None
+    for i, ch in enumerate(text):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and start is not None:
+                yield start, i + 1
+                start = None
+
+
+def extract_text_tool_calls(content: str):
+    """Recover tool calls a weak model emitted as TEXT instead of structured tool_calls.
+
+    Small models (esp. after a few tool round-trips) drift and print
+    `{"name": "run_command", "arguments": {...}}` as plain content. We scan for those
+    JSON blocks naming one of our tools and turn them into real calls, returning
+    (calls, cleaned_text) where cleaned_text has those blocks (and code fences) removed.
+    """
+    if not content or "{" not in content:
+        return [], content or ""
+
+    calls = []
+    spans = []
+    for s, e in _balanced_json_spans(content):
+        try:
+            obj = json.loads(content[s:e])
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(obj, dict) and obj.get("name") in TOOL_NAMES:
+            args = obj.get("arguments")
+            calls.append((obj["name"], args if isinstance(args, dict) else {}))
+            spans.append((s, e))
+
+    if not calls:
+        return [], content
+
+    cleaned = []
+    last = 0
+    for s, e in spans:
+        cleaned.append(content[last:s])
+        last = e
+    cleaned.append(content[last:])
+    text = "".join(cleaned)
+    # drop now-empty code fences left behind
+    text = text.replace("```json", "").replace("```", "").strip()
+    return calls, text
+
+
 def _tool_label(name: str, args: dict) -> str:
     """Compact label the frontend renders on a tool-call chip."""
     if name == "read_file":
@@ -94,7 +151,25 @@ def _tool_label(name: str, args: dict) -> str:
     return name
 
 
-def stream_turn(attempt_id: str, history: list, user_text: str, client: OpenAI = None):
+def _system_prompt(test_cmd: str = None) -> str:
+    """Base prompt + the problem's visible-test command so the agent doesn't guess it."""
+    if test_cmd:
+        return (
+            SYSTEM_PROMPT
+            + f"\n\nRun the visible tests with exactly: `{test_cmd}`. "
+            "Do not modify files under tests/ — only the solution files."
+        )
+    return SYSTEM_PROMPT
+
+
+def stream_turn(
+    attempt_id: str,
+    history: list,
+    user_text: str,
+    client: OpenAI = None,
+    image: str = sandbox.DEFAULT_IMAGE,
+    test_cmd: str = None,
+):
     """Run one full turn as a generator, yielding events as they happen.
 
     Event types (dicts):
@@ -110,7 +185,9 @@ def stream_turn(attempt_id: str, history: list, user_text: str, client: OpenAI =
     """
     client = client or get_client()
 
-    messages = list(history) if history else [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages = (
+        list(history) if history else [{"role": "system", "content": _system_prompt(test_cmd)}]
+    )
     messages.append({"role": "user", "content": user_text})
 
     tokens = 0
@@ -120,40 +197,50 @@ def stream_turn(attempt_id: str, history: list, user_text: str, client: OpenAI =
             tokens += resp.usage.total_tokens or 0
 
         msg = resp.choices[0].message
-        tool_calls = msg.tool_calls or []
 
-        # Record the assistant message exactly as returned (so tool_calls round-trip).
+        # Normalize calls to [(id, name, args_dict)] from native tool_calls, or — if the
+        # model degraded to text — recover them from the content.
+        calls = []
+        if msg.tool_calls:
+            for tc in msg.tool_calls:
+                try:
+                    args = json.loads(tc.function.arguments or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                calls.append((tc.id, tc.function.name, args))
+            display_text = msg.content or ""
+        else:
+            recovered, display_text = extract_text_tool_calls(msg.content or "")
+            calls = [(f"call_{uuid.uuid4().hex[:8]}", name, args) for name, args in recovered]
+
+        # Record the assistant message (clean content + structured tool_calls) so the
+        # history stays well-formed and the model keeps seeing proper tool-calling shape.
         messages.append(
             {
                 "role": "assistant",
-                "content": msg.content or "",
+                "content": display_text,
                 "tool_calls": [
                     {
-                        "id": tc.id,
+                        "id": cid,
                         "type": "function",
-                        "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                        "function": {"name": name, "arguments": json.dumps(args)},
                     }
-                    for tc in tool_calls
+                    for cid, name, args in calls
                 ]
                 or None,
             }
         )
-        if msg.content:
-            yield {"type": "agent", "text": msg.content}
+        if display_text.strip():
+            yield {"type": "agent", "text": display_text}
 
-        if not tool_calls:
+        if not calls:
             break  # no tools -> turn is done
 
-        for tc in tool_calls:
-            name = tc.function.name
-            try:
-                args = json.loads(tc.function.arguments or "{}")
-            except json.JSONDecodeError:
-                args = {}
+        for cid, name, args in calls:
             yield {"type": "tool_call", "name": name, "label": _tool_label(name, args)}
 
-            result = sandbox.run_tool(attempt_id, name, args)
-            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+            result = sandbox.run_tool(attempt_id, name, args, image)
+            messages.append({"role": "tool", "tool_call_id": cid, "content": result})
 
             if name == "run_command":
                 yield {
@@ -168,7 +255,14 @@ def stream_turn(attempt_id: str, history: list, user_text: str, client: OpenAI =
     yield {"type": "done", "tokens": tokens, "history": messages}
 
 
-def run_agent(attempt_id: str, history: list, user_text: str, client: OpenAI = None) -> dict:
+def run_agent(
+    attempt_id: str,
+    history: list,
+    user_text: str,
+    client: OpenAI = None,
+    image: str = sandbox.DEFAULT_IMAGE,
+    test_cmd: str = None,
+) -> dict:
     """Non-streaming wrapper: drains stream_turn into {events, history, tokens}.
 
     Kept for tests and any non-SSE caller. Folds the rich stream into the compact
@@ -176,7 +270,7 @@ def run_agent(attempt_id: str, history: list, user_text: str, client: OpenAI = N
     """
     events = []
     final = None
-    for ev in stream_turn(attempt_id, history, user_text, client):
+    for ev in stream_turn(attempt_id, history, user_text, client, image, test_cmd):
         if ev["type"] == "done":
             final = ev
         elif ev["type"] == "agent":

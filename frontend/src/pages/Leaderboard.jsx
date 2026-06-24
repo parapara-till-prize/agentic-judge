@@ -1,18 +1,29 @@
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { DomainTag } from '../components/ui'
-import { SCORING_PRESETS } from '../data/mock'
-import { useProblem, useLeaderboard } from '../api/queries'
+import Select from '../components/Select'
+import { useProblem, useProblems, useLeaderboard } from '../api/queries'
 import styles from './Leaderboard.module.css'
 
 const AVATAR_COLORS = ['#16a34a', '#2563eb', '#7c3aed', '#0891b2', '#d97706', '#db2777']
 
 export default function Leaderboard() {
-  const { id } = useParams()
+  const { id } = useParams() // undefined => global (all problems)
+  const navigate = useNavigate()
   const { data: problem } = useProblem(id)
+  const { data: problems } = useProblems()
   const { data: entries, isLoading, isError, error } = useLeaderboard(id)
   const [tab, setTab] = useState('passed') // 'passed' | 'turns'
+
+  // problem picker: "전체" (global) + one option per problem
+  const scopeOptions = useMemo(
+    () => [
+      { value: 'all', label: '전체 통합' },
+      ...(problems ?? []).map((p) => ({ value: String(p.id), label: `#${p.id} ${p.title}` })),
+    ],
+    [problems],
+  )
+  const onScopeChange = (v) => navigate(v === 'all' ? '/leaderboard' : `/leaderboard/${v}`)
 
   const rows = useMemo(() => {
     const list = (entries ?? []).map((e, i) => ({
@@ -33,9 +44,19 @@ export default function Leaderboard() {
           {/* leaderboard card */}
           <div className="card card--flush">
             <div className={styles.lbHeader}>
-              <div className={styles.lbTitle}>리더보드</div>
-              <div className={styles.lbSub}>
-                #{id} {problem?.title ?? ''}
+              <div className={styles.lbHeadTop}>
+                <div>
+                  <div className={styles.lbTitle}>리더보드</div>
+                  <div className={styles.lbSub}>
+                    {id ? `#${id} ${problem?.title ?? ''}` : '전체 문제 통합 랭킹'}
+                  </div>
+                </div>
+                <Select
+                  value={id ?? 'all'}
+                  onValueChange={onScopeChange}
+                  options={scopeOptions}
+                  ariaLabel="리더보드 범위"
+                />
               </div>
               <div className={`tracks ${styles.tabs}`}>
                 <button
@@ -81,41 +102,11 @@ export default function Leaderboard() {
 
             {isLoading && <div className={styles.state}>불러오는 중…</div>}
             {isError && (
-              <div className={styles.state}>불러오지 못했습니다. {error?.message}</div>
+              <div className={styles.state}>불러오지 못했어요. {error?.message}</div>
             )}
             {!isLoading && !isError && rows.length === 0 && (
-              <div className={styles.state}>아직 제출 기록이 없습니다.</div>
+              <div className={styles.state}>아직 제출 기록이 없어요.</div>
             )}
-          </div>
-
-          {/* domain-scoring module explainer */}
-          <div className={`card ${styles.explainer}`}>
-            <div className={styles.explainerTitle}>평가 축은 도메인마다 조립한다</div>
-            <div className={styles.explainerSub}>
-              '턴'은 효율 축의 한 지표일 뿐. 도메인별로 채점 모듈과 가중치를 다르게 끼운다.{' '}
-              <span style={{ color: 'var(--text-dim)' }}>
-                (가중치 미정 — 구성 가능 구조로 설계)
-              </span>
-            </div>
-            <div className={styles.presets}>
-              {SCORING_PRESETS.map((preset) => (
-                <div key={preset.domain} className={styles.preset}>
-                  <div style={{ marginBottom: 9 }}>
-                    <DomainTag domain={preset.domain} />
-                  </div>
-                  <div className={styles.axes}>
-                    {preset.axes.map((a) => (
-                      <span
-                        key={a.label}
-                        className={`${styles.axis}${a.primary ? ` ${styles.axisPrimary}` : ''}`}
-                      >
-                        {a.label} <b className="mono">{a.val}</b>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </main>

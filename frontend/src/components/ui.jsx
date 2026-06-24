@@ -1,4 +1,4 @@
-import { DOMAINS, DIFFICULTY } from '../data/mock'
+import { DOMAINS, DIFFICULTY } from '../data/constants'
 import styles from './ui.module.css'
 
 export function Badge({ difficulty }) {

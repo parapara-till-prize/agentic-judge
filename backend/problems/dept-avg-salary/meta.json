@@ -1,0 +1,23 @@
+{
+  "id": 2207,
+  "title": "부서별 평균 급여",
+  "runtime": {
+    "image": "judge-sql:base",
+    "test_cmd": "python3 run_tests.py",
+    "grade_cmd": "python3 run_grade.py"
+  },
+  "difficulty": "basic",
+  "category": "집계 쿼리",
+  "domain": "sql",
+  "skills": ["GROUP BY", "필터링"],
+  "ideal_turns": 3,
+  "ideal_tokens": 5000,
+  "scoring": {
+    "axes": [
+      { "key": "accuracy", "label": "결과셋 일치", "weight": 0.65 },
+      { "key": "turn_efficiency", "label": "효율 · 턴", "weight": 0.2 },
+      { "key": "token_efficiency", "label": "효율 · 토큰", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "lazy `SELECT dept, AVG(salary) ... GROUP BY dept ORDER BY AVG(salary) DESC` passes visible (all active, distinct avgs) but fails hidden: no active=1 filter (inactive rows skew averages / add ghost depts), and an all-inactive set must return empty."
+}

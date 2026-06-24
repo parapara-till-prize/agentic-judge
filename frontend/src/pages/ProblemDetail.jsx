@@ -16,7 +16,7 @@ export default function ProblemDetail() {
   if (isError || !problem) {
     return (
       <Shell>
-        <div className={styles.state}>문제를 불러오지 못했습니다. {error?.message}</div>
+        <div className={styles.state}>문제를 불러오지 못했어요. {error?.message}</div>
       </Shell>
     )
   }

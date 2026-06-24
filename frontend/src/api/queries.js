@@ -5,6 +5,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { apiFetch } from './client'
 
 export const keys = {
@@ -37,7 +38,10 @@ export function useLogin() {
   return useMutation({
     mutationFn: ({ username, password }) =>
       apiFetch('/auth/login', { method: 'POST', body: { username, password } }),
-    onSuccess: (data) => qc.setQueryData(keys.me, data),
+    onSuccess: (data) => {
+      qc.setQueryData(keys.me, data)
+      toast.success('성공적으로 로그인했어요')
+    },
   })
 }
 
@@ -46,7 +50,10 @@ export function useRegister() {
   return useMutation({
     mutationFn: ({ username, password }) =>
       apiFetch('/auth/register', { method: 'POST', body: { username, password } }),
-    onSuccess: (data) => qc.setQueryData(keys.me, data),
+    onSuccess: (data) => {
+      qc.setQueryData(keys.me, data)
+      toast.success('성공적으로 회원가입했어요')
+    },
   })
 }
 
@@ -57,7 +64,9 @@ export function useLogout() {
     onSuccess: () => {
       qc.setQueryData(keys.me, null)
       qc.invalidateQueries() // identity changed -> refetch anything user-scoped
+      toast.success('성공적으로 로그아웃했어요')
     },
+    onError: (e) => toast.error('로그아웃하지 못했어요', { description: e.message }),
   })
 }
 
