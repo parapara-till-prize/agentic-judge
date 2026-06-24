@@ -28,6 +28,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 3, "tokens": 5000, "time_sec": 540 },
   "trap_note": "lazy GROUP BY without WHERE active=1 passes visible (all rows active, distinct avgs) but fails hidden: inactive rows skew avg, all-inactive dept must not appear, all-inactive table must return empty."
 }

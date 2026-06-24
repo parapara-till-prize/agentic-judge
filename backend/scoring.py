@@ -9,32 +9,36 @@ match — plug in by adding a branch to `_axis_pct` once the measuring tool exis
 config format and the breakdown the frontend renders don't change.
 """
 
-DEFAULT_IDEAL_TOKENS = 6000
-
 # domain -> default axis config used when meta.json has no "scoring" block
 DEFAULT_AXES = {
     "algorithm": [
-        {"key": "accuracy", "label": "정확도", "weight": 0.6},
-        {"key": "turn_efficiency", "label": "효율 · 턴", "weight": 0.25},
-        {"key": "token_efficiency", "label": "효율 · 토큰", "weight": 0.15},
+        {"key": "accuracy",         "label": "정확도",    "weight": 0.6},
+        {"key": "turn_efficiency",  "label": "효율 · 턴", "weight": 0.25},
+        {"key": "token_efficiency", "label": "효율 · 토큰","weight": 0.15},
     ],
     "backend": [
-        {"key": "accuracy", "label": "정확도", "weight": 0.65},
-        {"key": "turn_efficiency", "label": "효율 · 턴", "weight": 0.2},
-        {"key": "token_efficiency", "label": "효율 · 토큰", "weight": 0.15},
+        {"key": "accuracy",         "label": "정확도",    "weight": 0.65},
+        {"key": "turn_efficiency",  "label": "효율 · 턴", "weight": 0.2},
+        {"key": "token_efficiency", "label": "효율 · 토큰","weight": 0.15},
     ],
 }
 FALLBACK_AXES = DEFAULT_AXES["algorithm"]
 
 
 def _axis_pct(key: str, ctx: dict) -> float:
-    """Percentage (0–100) for one measurable axis. Unknown axes score 0 (not yet wired)."""
+    """Percentage (0–100) for one axis.
+
+    Efficiency is purely inverse of consumption — no per-problem baseline needed.
+    Fewer turns / fewer tokens → higher score, with a practical cap at 100.
+      turn_efficiency  = 100 / actual_turns   (1 turn → 100%, 5 turns → 20%, …)
+      token_efficiency = 100k / actual_tokens (1k tokens → 100%, 10k → 10%, …)
+    """
     if key == "accuracy":
         return 100.0 * ctx["passed"] / ctx["total"] if ctx["total"] else 0.0
     if key == "turn_efficiency":
-        return 100.0 * min(1.0, ctx["ideal_turns"] / max(ctx["turns"], 1))
+        return min(100.0, 100.0 / max(ctx["turns"], 1))
     if key == "token_efficiency":
-        return 100.0 * min(1.0, ctx["ideal_tokens"] / max(ctx["tokens"], 1))
+        return min(100.0, 100_000.0 / max(ctx["tokens"], 1))
     return 0.0
 
 
@@ -51,36 +55,25 @@ def evaluate(meta: dict, passed: int, total: int, turns: int, tokens: int) -> di
     )
     weight_sum = sum(a.get("weight", 0) for a in axes_cfg) or 1.0
 
-    par = meta.get("par") or {}
-    ctx = {
-        "passed": passed,
-        "total": total,
-        "turns": turns,
-        "tokens": tokens,
-        "ideal_turns": par.get("turns") or meta.get("ideal_turns", 3),
-        "ideal_tokens": par.get("tokens") or meta.get("ideal_tokens", DEFAULT_IDEAL_TOKENS),
-    }
-
+    ctx = {"passed": passed, "total": total, "turns": turns, "tokens": tokens}
     fully_passed = total > 0 and passed == total
 
     axes = []
     for a in axes_cfg:
         key = a["key"]
-        pct = _axis_pct(key, ctx)   # always the true measured value
+        pct = _axis_pct(key, ctx)
         weight = a.get("weight", 0) / weight_sum
 
-        # gate: efficiency axes only count toward score when all tests pass
+        # gate: efficiency only counts toward score when all tests pass
         score_pct = pct if (key == "accuracy" or fully_passed) else 0.0
 
-        axes.append(
-            {
-                "key": key,
-                "label": a.get("label", key),
-                "weight": round(weight, 4),
-                "pct": round(pct, 1),                          # true measurement (display)
-                "points": round(10 * score_pct * weight, 1),   # gated contribution to score
-            }
-        )
+        axes.append({
+            "key": key,
+            "label": a.get("label", key),
+            "weight": round(weight, 4),
+            "pct": round(pct, 1),                         # true measurement (display)
+            "points": round(10 * score_pct * weight, 1),  # gated contribution to score
+        })
 
     return {
         "score": round(sum(ax["points"] for ax in axes)),

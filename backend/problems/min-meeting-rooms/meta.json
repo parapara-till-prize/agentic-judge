@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 6, "tokens": 12000, "time_sec": 900 },
   "trap_note": "boundary touch (end==start) is NOT overlap; empty->0; unsorted input; must sort starts/ends separately and sweep with strict <."
 }

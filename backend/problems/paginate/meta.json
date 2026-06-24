@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 3, "tokens": 6000, "time_sec": 540 },
   "trap_note": "naive slicing breaks: out-of-range page must return empty (not error), size<=0 must raise, total_pages is ceil, page is 1-indexed."
 }

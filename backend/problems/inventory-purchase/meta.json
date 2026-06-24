@@ -28,6 +28,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 8, "tokens": 16000, "time_sec": 1200 },
   "trap_note": "last-item concurrent purchase must not oversell; same idem_key must charge once. naive get+set oversells."
 }

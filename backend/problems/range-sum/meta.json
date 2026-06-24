@@ -28,6 +28,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 3, "tokens": 6000, "time_sec": 540 },
   "trap_note": "naive sum(arr[i-1:j]) passes visible but fails hidden: reversed bounds (i>j) must return 0, 1-indexed inclusive off-by-one, negatives."
 }

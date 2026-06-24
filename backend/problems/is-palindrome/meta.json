@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 3, "tokens": 5000, "time_sec": 480 },
   "trap_note": "naive s==s[::-1] passes visible but fails hidden: must strip non-alphanumeric and lowercase before comparing. '.,!' -> True (no alnum chars)."
 }

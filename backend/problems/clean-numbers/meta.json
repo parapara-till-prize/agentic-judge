@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 3, "tokens": 6000, "time_sec": 540 },
   "trap_note": "naive int(x) raises: must strip thousands comma, blank->None, trim ws, handle negative/decimal/currency symbol."
 }

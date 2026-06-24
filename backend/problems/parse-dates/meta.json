@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 5, "tokens": 9000, "time_sec": 720 },
   "trap_note": "multiple formats (ISO, M/D/YY, 'Mon D YYYY'); invalid->None; M/D convention; trim ws. naive single-format parser fails."
 }

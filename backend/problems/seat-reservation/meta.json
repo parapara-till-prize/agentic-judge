@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 12, "tokens": 25000, "time_sec": 2100 },
   "trap_note": "overbooking vs perf tension: need atomic seat decrement + hold/confirm saga (release on payment fail) + idempotency. naive lock-or-rescan fails perf or partial-failure."
 }

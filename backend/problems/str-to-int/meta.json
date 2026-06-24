@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 4, "tokens": 7000, "time_sec": 600 },
   "trap_note": "naive int(s) raises on '4d2', no int32 clamp, no empty/invalid->0. Must skip leading ws, parse sign, stop at first non-digit, clamp to [-2^31, 2^31-1]."
 }

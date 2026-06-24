@@ -28,6 +28,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 4, "tokens": 8000, "time_sec": 600 },
   "trap_note": "naive get+set loses updates under concurrency; must use store.incr (atomic)."
 }

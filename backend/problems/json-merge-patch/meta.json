@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 7, "tokens": 14000, "time_sec": 1080 },
   "trap_note": "RFC 7386: null deletes key, objects merge recursively, arrays replace wholesale, type changes allowed. naive dict.update misses all of these."
 }

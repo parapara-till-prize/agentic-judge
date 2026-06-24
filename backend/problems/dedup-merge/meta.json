@@ -29,6 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 7, "tokens": 14000, "time_sec": 1080 },
   "trap_note": "dedup by id (case-insensitive); conflict: latest non-null wins; preserve first-appearance order; records missing id pass through; multi-field conflicts."
 }

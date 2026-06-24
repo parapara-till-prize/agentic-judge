@@ -28,6 +28,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "par": { "turns": 3, "tokens": 5000, "time_sec": 480 },
   "trap_note": "naive open-count==close-count passes visible but fails hidden: wrong nesting '([)]', leading close ')(', unmatched opens '(((' all require a stack."
 }
