@@ -5,7 +5,7 @@ import {
   InformationFilled,
   WarningAltFilled,
 } from '@carbon/icons-react'
-import styles from './Toaster.module.css'
+import styles from '../styles/components/Toaster.module.css'
 
 // App-wide toast host. Sonner handles the queue/animations; we only restyle it to the
 // arena look (white surface, our border/radius, Pretendard, accent-green success / red error)

@@ -1,5 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import styles from './SkillFilter.module.css'
+import styles from '../styles/components/SkillFilter.module.css'
 
 // Multi-select skill filter built on Radix DropdownMenu checkbox items.
 export default function SkillFilter({ skills, selected, onToggle, onClear }) {

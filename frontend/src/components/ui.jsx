@@ -1,5 +1,5 @@
 import { DOMAINS, DIFFICULTY } from '../data/constants'
-import styles from './ui.module.css'
+import styles from '../styles/components/ui.module.css'
 
 export function Badge({ difficulty }) {
   const d = DIFFICULTY[difficulty]

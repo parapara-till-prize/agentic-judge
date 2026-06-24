@@ -8,7 +8,7 @@ import { Badge, DomainTag, Chip, StatusDot } from '../components/ui'
 import { TRACKS } from '../data/constants'
 import { useProblems } from '../api/queries'
 import { useUiStore } from '../store/uiStore'
-import styles from './Home.module.css'
+import styles from '../styles/pages/Home.module.css'
 
 const DIFFICULTY_OPTIONS = [
   { value: 'all', label: '전체 난이도' },

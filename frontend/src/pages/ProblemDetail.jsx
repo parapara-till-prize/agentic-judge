@@ -3,7 +3,7 @@ import Navbar from '../components/Navbar'
 import { Badge, Chip } from '../components/ui'
 import Markdown from '../components/Markdown'
 import { useProblem } from '../api/queries'
-import styles from './ProblemDetail.module.css'
+import styles from '../styles/pages/ProblemDetail.module.css'
 
 export default function ProblemDetail() {
   const { id } = useParams()

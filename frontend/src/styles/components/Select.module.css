@@ -26,11 +26,14 @@
   border-color: var(--accent);
 }
 .icon {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
   color: var(--text-dim);
+  transition: transform 0.12s ease;
 }
 .trigger[data-state='open'] .icon {
   color: var(--accent);
+  transform: rotate(180deg);
 }
 
 .content {

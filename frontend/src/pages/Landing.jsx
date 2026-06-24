@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, ChatBot, Review, CheckmarkOutline } from '@carbon/icons-react'
 import Navbar from '../components/Navbar'
-import styles from './Landing.module.css'
+import styles from '../styles/pages/Landing.module.css'
 
 const STEPS = [
   {

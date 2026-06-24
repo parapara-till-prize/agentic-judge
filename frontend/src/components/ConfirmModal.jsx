@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import styles from './ConfirmModal.module.css'
+import styles from '../styles/components/ConfirmModal.module.css'
 
 // Small reusable confirmation dialog. Built on Radix so it traps focus + closes on
 // Esc/overlay like the other modals. `danger` tints the confirm button for destructive
