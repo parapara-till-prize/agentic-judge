@@ -23,20 +23,29 @@ import sandbox
 BASE = Path(__file__).parent
 
 # Injected into grade_dir for pytest-hidden problems that have no run_grade.py.
-# Runs test_hidden.py with pytest -v, counts PASSED/FAILED/ERROR lines, prints GRADE: JSON.
+# Counts results via a pytest collector plugin (report.when == "call") rather than scraping
+# stdout — string-matching pytest's output is fragile (e.g. `-v` appends `[ 16%]` so a line
+# never ends in "PASSED"). Prints GRADE: JSON. Mirrors the shipped run_grade.py graders.
 _PYTEST_GRADE_SCRIPT = """\
-import subprocess, json, sys
-from pathlib import Path
+import json
+import pytest
 
-r = subprocess.run(
-    [sys.executable, "-m", "pytest", "test_hidden.py", "-v", "--tb=no"],
-    capture_output=True, text=True, cwd=Path(__file__).parent,
-)
-out = r.stdout + r.stderr
-lines = out.splitlines()
-passed = sum(1 for l in lines if l.strip().endswith("PASSED"))
-failed = sum(1 for l in lines if l.strip().endswith(("FAILED", "ERROR")))
-print("GRADE:" + json.dumps({"passed": passed, "total": passed + failed}))
+
+class _Collector:
+    def __init__(self):
+        self.passed = 0
+        self.total = 0
+
+    def pytest_runtest_logreport(self, report):
+        if report.when == "call":
+            self.total += 1
+            if report.passed:
+                self.passed += 1
+
+
+_c = _Collector()
+pytest.main(["test_hidden.py", "-q", "--tb=no", "-p", "no:cacheprovider"], plugins=[_c])
+print("GRADE:" + json.dumps({"passed": _c.passed, "total": _c.total}))
 """
 
 PROBLEMS = BASE / "problems"
