@@ -1,0 +1,7 @@
+{
+  "title": "구간 합 구하기",
+  "difficulty": "mid",
+  "category": "알고리즘",
+  "ideal_turns": 3,
+  "trap_note": "naive `sum(arr[i-1:j])` passes visible but fails hidden: reversed bounds (i>j) returns 0, single-element interval, full range, negatives. 1-indexed inclusive boundaries are the off-by-one trap."
+}

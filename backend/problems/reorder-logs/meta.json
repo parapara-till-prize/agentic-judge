@@ -1,0 +1,7 @@
+{
+  "title": "로그 재정렬 API",
+  "difficulty": "mid",
+  "category": "API 구현",
+  "ideal_turns": 4,
+  "trap_note": "naive sorted(logs) fails: must split id/content, sort letter-logs by content then identifier, keep digit-logs in original order and after all letter-logs. Hidden tests tie-break-by-identifier, digit stability, empty input, all-digits."
+}

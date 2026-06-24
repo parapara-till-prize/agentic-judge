@@ -1,0 +1,7 @@
+{
+  "title": "괄호 짝 맞추기",
+  "difficulty": "basic",
+  "category": "알고리즘",
+  "ideal_turns": 3,
+  "trap_note": "naive counting (count of opens == closes) passes visible but fails hidden: wrong nesting order '([)]', leading close ')(' , unmatched opens '((('. Requires a stack. Empty string -> True."
+}
