@@ -40,6 +40,7 @@ export function useLogin() {
       apiFetch('/auth/login', { method: 'POST', body: { username, password } }),
     onSuccess: (data) => {
       qc.setQueryData(keys.me, data)
+      qc.invalidateQueries() // identity changed -> refetch user-scoped data (solved status, etc.)
       toast.success('성공적으로 로그인했어요')
     },
   })
@@ -52,6 +53,7 @@ export function useRegister() {
       apiFetch('/auth/register', { method: 'POST', body: { username, password } }),
     onSuccess: (data) => {
       qc.setQueryData(keys.me, data)
+      qc.invalidateQueries() // identity changed -> refetch user-scoped data (solved status, etc.)
       toast.success('성공적으로 회원가입했어요')
     },
   })
@@ -167,5 +169,18 @@ export function usePublishProblem() {
       qc.invalidateQueries({ queryKey: keys.problems })
       toast.success('문제가 등록됐어요')
     },
+  })
+}
+
+// AI tutor feedback for the submit screen. Same hosted model as the agent, different prompt:
+// sends the failed hidden-case ids (from the submit result) and gets back a holistic eval +
+// one no-spoiler hint per failed case. Slow (one LLM call) -> the modal shows a spinner.
+export function useFeedback(attemptId) {
+  return useMutation({
+    mutationFn: (failedTests) =>
+      apiFetch(`/attempts/${attemptId}/feedback`, {
+        method: 'POST',
+        body: { failed_tests: failedTests ?? [] },
+      }),
   })
 }

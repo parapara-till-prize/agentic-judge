@@ -29,6 +29,7 @@ from sqlmodel import Session, select  # noqa: E402
 
 import agent  # noqa: E402
 import auth  # noqa: E402
+import feedback  # noqa: E402
 import grade  # noqa: E402
 import scoring  # noqa: E402
 from db import Attempt, Submission, engine, init_db  # noqa: E402
@@ -87,6 +88,10 @@ class PublishProblem(BaseModel):
     statement_md: str | None = None  # overrides generated version if user edited it
 
 
+class FeedbackRequest(BaseModel):
+    failed_tests: list[str] = []
+
+
 # --- auth (session cookie) --------------------------------------------------
 def _set_session_cookie(response: Response, token: str):
     response.set_cookie(
@@ -143,6 +148,23 @@ def _workspace_files(attempt_id: str) -> list:
     return out
 
 
+def _attempt_code(attempt_id: str) -> str:
+    """Concatenate the attempt's solution files (excluding visible tests + harness) into one
+    fenced blob for the feedback prompt — i.e. the code under review, minus scaffolding."""
+    wd = ATTEMPTS / attempt_id
+    skip = {"__pycache__", ".pytest_cache", "harness", "tests"}
+    chunks = []
+    for p in sorted(wd.rglob("*")):
+        if not p.is_file() or skip & set(p.relative_to(wd).parts):
+            continue
+        try:
+            content = p.read_text()[:MAX_OUTPUT]
+        except UnicodeDecodeError:
+            continue
+        chunks.append(f"### {p.relative_to(wd)}\n```\n{content}\n```")
+    return "\n\n".join(chunks)
+
+
 def _problem_stats(problem_id: str, session: Session) -> dict:
     """Aggregate submission stats for one problem (solved_rate, counts, turn records)."""
     subs = session.exec(
@@ -183,7 +205,16 @@ def _resolve(problem_id: str) -> tuple:
     return hit
 
 
-def _problem_card(pid: str, slug: str, m: dict, session: Session) -> dict:
+def _user_solved_ids(user: str, session: Session) -> set:
+    """Public problem ids the user has fully passed (passed == total > 0). Empty when logged
+    out. One query backs the whole list so cards don't each hit the DB."""
+    if not user:
+        return set()
+    subs = session.exec(select(Submission).where(Submission.user == user)).all()
+    return {s.problem_id for s in subs if s.total > 0 and s.passed == s.total}
+
+
+def _problem_card(pid: str, slug: str, m: dict, session: Session, solved: bool = False) -> dict:
     stats = _problem_stats(pid, session)  # submissions are keyed by the public id
     return {
         "id": m["id"],
@@ -193,24 +224,27 @@ def _problem_card(pid: str, slug: str, m: dict, session: Session) -> dict:
         "category": m.get("category", ""),
         "domain": m.get("type", "algorithm"),
         "skills": m.get("skills", []),
+        "solved": solved,  # per-user: did the current user fully pass this? (false if logged out)
         **stats,
     }
 
 
 @app.get("/problems")
-def list_problems():
+def list_problems(user: str = Depends(auth.get_optional_user)):
     out = []
     with Session(engine) as session:
+        solved_ids = _user_solved_ids(user, session)
         for pid, (slug, m) in sorted(_index().items(), key=lambda kv: kv[0]):
-            out.append(_problem_card(pid, slug, m, session))
+            out.append(_problem_card(pid, slug, m, session, solved=pid in solved_ids))
     return out
 
 
 @app.get("/problems/{problem_id}")
-def get_problem(problem_id: str):
+def get_problem(problem_id: str, user: str = Depends(auth.get_optional_user)):
     slug, m = _resolve(problem_id)
     with Session(engine) as session:
-        card = _problem_card(str(m["id"]), slug, m, session)
+        solved_ids = _user_solved_ids(user, session)
+        card = _problem_card(str(m["id"]), slug, m, session, solved=str(m["id"]) in solved_ids)
     statement_file = PROBLEMS / slug / "statement.md"
     card["statement"] = statement_file.read_text(encoding="utf-8") if statement_file.exists() else ""
     return card
@@ -361,6 +395,7 @@ def submit(attempt_id: str):
         result = grade.run_hidden_tests(attempt_id, slug)
         passed, total = result["passed"], result["total"]
         passed_cases, total_cases = result["passed_cases"], result["total_cases"]
+        failed_tests = result.get("failed", [])  # failed hidden case ids -> AI feedback route
         scored = scoring.evaluate(
             meta, passed, total, attempt.turns, attempt.tokens
         )
@@ -398,6 +433,7 @@ def submit(attempt_id: str):
         "tokens": tokens,
         "axes": scored["axes"],
         "feedback": feedback,
+        "failed": failed_tests,  # failed hidden case ids -> fed to the AI feedback route
     }
 
 
@@ -477,6 +513,34 @@ def publish_problem_route(body: PublishProblem, user: str = Depends(auth.get_cur
 
     gen.save_problem(data["slug"], data["meta"], data["files"])
     return {"ok": True, "id": data["slug"]}
+
+
+@app.post("/attempts/{attempt_id}/feedback")
+def get_feedback(
+    attempt_id: str,
+    body: FeedbackRequest,
+    user: str = Depends(auth.get_current_user),
+):
+    """AI tutor feedback for the submit screen: a holistic evaluation + one no-spoiler hint
+    per failed hidden case. Same hosted model as the agent loop, only the prompt differs.
+
+    Synchronous (the client shows a spinner until it returns). Problem + code are assembled
+    server-side from the attempt; `failed_tests` (failed hidden case ids) come from the just-
+    returned submit result. Owner-gated, like the other attempt-scoped routes.
+    """
+    with Session(engine) as session:
+        attempt = session.get(Attempt, attempt_id)
+        if not attempt:
+            raise HTTPException(404, "unknown attempt")
+        if attempt.user != user:
+            raise HTTPException(403, "not your attempt")
+        problem_id = attempt.problem_id
+
+    slug, _meta = _resolve(problem_id)
+    statement_file = PROBLEMS / slug / "statement.md"
+    statement = statement_file.read_text() if statement_file.exists() else ""
+    code = _attempt_code(attempt_id)
+    return feedback.generate_feedback(statement, code, body.failed_tests)
 
 
 @app.get("/leaderboard")
