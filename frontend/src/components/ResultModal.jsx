@@ -217,7 +217,6 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
                                         <div className={styles.fbList}>
                                             {fbMut.data.feedbacks.map((f, i) => (
                                                 <div key={i} className={styles.fbItem}>
-                                                    <div className={`mono ${styles.fbTest}`}>{f.test}</div>
                                                     <div className={styles.fbHint}>{f.hint}</div>
                                                 </div>
                                             ))}
