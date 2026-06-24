@@ -418,7 +418,9 @@ export default function Workspace() {
                 onChange={(e) => setDraft(e.target.value)}
                 disabled={!attemptId}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  // skip the Enter that commits an in-progress IME composition (Korean/JP/…),
+                  // otherwise clearing the draft races the commit and re-inserts the last char
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault()
                     send()
                   }
