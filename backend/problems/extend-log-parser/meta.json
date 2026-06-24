@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "id": "extend-log-parser",
+  "title": "로그 파서 확장",
+  "type": "algorithm",
+  "category": "알고리즘",
+  "difficulty": "basic",
+  "skills": ["문자열", "정규식"],
+  "submission": { "entry": "repo/log_entry.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_parse_info",         "weight": 1 },
+      { "id": "test_parse_warn",         "weight": 1 },
+      { "id": "test_parse_error",        "weight": 1 },
+      { "id": "test_parse_invalid",      "weight": 1 },
+      { "id": "test_filter_still_works", "weight": 3 },
+      { "id": "test_filter_level_mix",   "weight": 2 },
+      { "id": "test_stats_still_works",  "weight": 3 },
+      { "id": "test_stats_all_levels",   "weight": 2 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "parse() 반환값이 2-tuple에서 3-tuple로 바뀌므로 log_filter.py와 log_stats.py의 unpack 구문도 함께 수정해야 한다. 지시문은 log_entry.py만 언급하므로 naive 에이전트는 나머지 두 파일을 건드리지 않는다."
+}

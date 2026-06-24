@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "id": "min-meeting-rooms",
+  "title": "최소 회의실 수",
+  "type": "algorithm",
+  "category": "알고리즘",
+  "difficulty": "hard",
+  "skills": ["정렬", "스위프 라인"],
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_basic_overlap",    "weight": 1 },
+      { "id": "test_boundary_touch",   "weight": 2 },
+      { "id": "test_empty",            "weight": 1 },
+      { "id": "test_all_overlap",      "weight": 2 },
+      { "id": "test_nested",           "weight": 1 },
+      { "id": "test_unsorted_input",   "weight": 1 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "boundary touch (end==start) is NOT overlap; empty->0; unsorted input; must sort starts/ends separately and sweep with strict <."
+}

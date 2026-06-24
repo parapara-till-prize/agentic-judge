@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "id": "dedup-merge",
+  "title": "중복 제거·병합",
+  "type": "algorithm",
+  "category": "데이터 정제",
+  "difficulty": "hard",
+  "skills": ["병합 규칙", "순서 보존"],
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_dedup_key",            "weight": 1 },
+      { "id": "test_latest_nonnull_wins",  "weight": 2 },
+      { "id": "test_preserve_order",       "weight": 2 },
+      { "id": "test_case_insensitive_key", "weight": 1 },
+      { "id": "test_missing_key",          "weight": 1 },
+      { "id": "test_conflict_resolution",  "weight": 1 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "dedup by id (case-insensitive); conflict: latest non-null wins; preserve first-appearance order; records missing id pass through; multi-field conflicts."
+}

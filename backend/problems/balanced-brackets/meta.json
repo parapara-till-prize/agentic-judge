@@ -1,15 +1,32 @@
 {
-  "id": 1031,
+  "schema_version": 2,
+  "id": "balanced-brackets",
   "title": "괄호 짝 맞추기",
-  "runtime": {
-    "image": "judge-py:base",
-    "test_cmd": "python3 -m pytest tests -q",
-    "grade_cmd": "python3 run_grade.py"
-  },
-  "difficulty": "basic",
+  "type": "algorithm",
   "category": "알고리즘",
-  "domain": "algorithm",
+  "difficulty": "basic",
   "skills": ["스택", "문자열"],
-  "ideal_turns": 3,
-  "trap_note": "naive counting (count of opens == closes) passes visible but fails hidden: wrong nesting order '([)]', leading close ')(' , unmatched opens '((('. Requires a stack. Empty string -> True."
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_basic",            "weight": 1 },
+      { "id": "test_nesting_order",    "weight": 2 },
+      { "id": "test_empty_is_true",    "weight": 1 },
+      { "id": "test_leading_close",    "weight": 2 },
+      { "id": "test_unmatched_opens",  "weight": 1 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "naive open-count==close-count passes visible but fails hidden: wrong nesting '([)]', leading close ')(', unmatched opens '(((' all require a stack."
 }

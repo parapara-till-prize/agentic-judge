@@ -1,23 +1,32 @@
 {
-  "id": 1024,
+  "schema_version": 2,
+  "id": "range-sum",
   "title": "구간 합 구하기",
-  "runtime": {
-    "image": "judge-py:base",
-    "test_cmd": "python3 -m pytest tests -q",
-    "grade_cmd": "python3 run_grade.py"
-  },
-  "difficulty": "mid",
+  "type": "algorithm",
   "category": "알고리즘",
-  "domain": "algorithm",
+  "difficulty": "mid",
   "skills": ["누적합", "자료구조"],
-  "ideal_turns": 3,
-  "ideal_tokens": 6000,
-  "scoring": {
-    "axes": [
-      { "key": "accuracy", "label": "정확도", "weight": 0.6 },
-      { "key": "turn_efficiency", "label": "효율 · 턴", "weight": 0.25 },
-      { "key": "token_efficiency", "label": "효율 · 토큰", "weight": 0.15 }
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_basic",                   "weight": 1 },
+      { "id": "test_single_element_interval", "weight": 1 },
+      { "id": "test_full_range",              "weight": 1 },
+      { "id": "test_reversed_bounds",         "weight": 2 },
+      { "id": "test_negatives",               "weight": 1 }
     ]
   },
-  "trap_note": "naive `sum(arr[i-1:j])` passes visible but fails hidden: reversed bounds (i>j) returns 0, single-element interval, full range, negatives. 1-indexed inclusive boundaries are the off-by-one trap."
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.60 },
+      { "key": "turn_efficiency",  "weight": 0.25 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "naive sum(arr[i-1:j]) passes visible but fails hidden: reversed bounds (i>j) must return 0, 1-indexed inclusive off-by-one, negatives."
 }

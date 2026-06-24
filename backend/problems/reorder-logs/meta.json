@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "id": "reorder-logs",
+  "title": "로그 재정렬 API",
+  "type": "algorithm",
+  "category": "API 구현",
+  "difficulty": "mid",
+  "skills": ["정렬", "파싱"],
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_basic_ordering",                "weight": 1 },
+      { "id": "test_tie_break_by_identifier",       "weight": 2 },
+      { "id": "test_digit_logs_keep_original_order","weight": 2 },
+      { "id": "test_empty",                         "weight": 1 },
+      { "id": "test_all_digit_logs",                "weight": 1 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "naive sorted(logs) fails: must split id/content, sort letter-logs by (content, id), keep digit-logs in original order after all letter-logs."
+}
