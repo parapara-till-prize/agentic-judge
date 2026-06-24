@@ -36,15 +36,25 @@ export default function ProblemDetail() {
               <Chip key={s}>{s}</Chip>
             ))}
           </div>
-          <div className={styles.title}>{problem.title}</div>
+          <div
+            className={`${styles.title}${problem.solved ? ` ${styles.titleSolved}` : ''}`}
+          >
+            {problem.solved && (
+              <span className={styles.solvedMark} aria-label="해결됨">
+                ✓
+              </span>
+            )}
+            {problem.title}
+          </div>
 
           <div className={styles.stats}>
             <Stat label="성공률" value={`${rate}%`} />
             <Stat label="평균 턴 수" value={problem.avg_turns ?? '—'} />
             <Stat label="제출자" value={problem.submitters?.toLocaleString() ?? '0'} />
+            <Stat label="최소 턴 기록" value={problem.best_turns ?? '—'} />
             <Stat
-              label="최소 턴 기록"
-              value={problem.best_turns ?? '—'}
+              label="내 최고점"
+              value={problem.user_score ?? '—'}
               accent
             />
           </div>

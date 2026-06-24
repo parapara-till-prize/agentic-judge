@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar'
 import Select from '../components/Select'
 import SkillFilter from '../components/SkillFilter'
 import Toggle from '../components/Toggle'
-import { Badge, DomainTag, Chip, StatusDot } from '../components/ui'
+import { Badge, DomainTag, Chip } from '../components/ui'
 import { TRACKS } from '../data/constants'
 import { useProblems } from '../api/queries'
 import { useUiStore } from '../store/uiStore'
@@ -133,7 +133,6 @@ export default function Home() {
             <div>난이도</div>
             <div>스킬</div>
             <div className="t-right">통과율</div>
-            <div className="t-center">상태</div>
           </div>
 
           {rows.map((p) => (
@@ -143,7 +142,16 @@ export default function Home() {
               onClick={() => navigate(`/problem/${p.id}`)}
             >
               <div className={`mono ${styles.id}`}>{p.id}</div>
-              <div className={styles.cellTitle}>{p.title}</div>
+              <div
+                className={`${styles.cellTitle}${p.solved ? ` ${styles.cellTitleSolved}` : ''}`}
+              >
+                {p.solved && (
+                  <span className={styles.solvedMark} aria-label="해결됨">
+                    ✓
+                  </span>
+                )}
+                {p.title}
+              </div>
               <div>
                 <DomainTag domain={p.domain} />
               </div>
@@ -156,9 +164,6 @@ export default function Home() {
                 ))}
               </div>
               <div className={`mono ${styles.rate}`}>{p.rate.toFixed(1)}%</div>
-              <div className="t-center">
-                <StatusDot solved={p.solved} />
-              </div>
             </div>
           ))}
 

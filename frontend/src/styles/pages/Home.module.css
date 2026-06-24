@@ -65,7 +65,7 @@
 .head,
 .row {
   display: grid;
-  grid-template-columns: 56px 1.4fr 104px 74px 1.2fr 80px 50px;
+  grid-template-columns: 56px 1.4fr 104px 74px 1.2fr 80px;
   gap: 12px;
   padding: 12px 24px;
   align-items: center;
@@ -96,6 +96,14 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-h);
+}
+.cellTitleSolved {
+  color: var(--accent); /* solved problems read as green */
+}
+.solvedMark {
+  margin-right: 6px;
+  font-weight: 700;
+  color: var(--accent); /* non-color-only cue alongside the green title */
 }
 .skills {
   display: flex;

@@ -200,6 +200,18 @@ def _user_solved_ids(user: str, session: Session) -> set:
     return {s.problem_id for s in subs if s.total > 0 and s.passed == s.total}
 
 
+def _user_best_score(user: str, problem_id: str, session: Session) -> int | None:
+    """The logged-in user's best score (0–1000) for one problem, or None if no submission."""
+    if not user:
+        return None
+    subs = session.exec(
+        select(Submission).where(
+            Submission.user == user, Submission.problem_id == problem_id
+        )
+    ).all()
+    return max((s.score for s in subs), default=None)
+
+
 def _problem_card(pid: str, slug: str, m: dict, session: Session, solved: bool = False) -> dict:
     stats = _problem_stats(pid, session)  # submissions are keyed by the public id
     return {
@@ -231,6 +243,7 @@ def get_problem(problem_id: str, user: str = Depends(auth.get_optional_user)):
     with Session(engine) as session:
         solved_ids = _user_solved_ids(user, session)
         card = _problem_card(str(m["id"]), slug, m, session, solved=str(m["id"]) in solved_ids)
+        card["user_score"] = _user_best_score(user, str(m["id"]), session)
     statement_file = PROBLEMS / slug / "statement.md"
     card["statement"] = statement_file.read_text() if statement_file.exists() else ""
     return card
