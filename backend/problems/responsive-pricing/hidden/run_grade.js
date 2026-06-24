@@ -2,12 +2,12 @@
 // /work/hidden/, run as `node hidden/run_grade.js` against the agent's /work/index.html.
 // Launches headless chromium, loads the page at desktop + mobile viewports, and runs 5
 // assertions across layout / responsiveness / visual distinction / accessibility, then
-// prints GRADE:{"passed":N,"total":M}. The host parses only that marker.
+// prints GRADE:{"passed_ids":[...]} — the host maps ids to meta.json weights. Case names
+// (layout_row, equal_width, ...) must match meta.json hidden.cases ids.
 const { chromium } = require('playwright-core')
 const axe = require('axe-core')
 
 const CARD = '[data-testid="plan-card"]'
-const TOTAL = 5
 const URL = 'file:///work/index.html'
 
 const boxes = (page) =>
@@ -100,11 +100,11 @@ async function main() {
   })
 
   await browser.close()
-  const passed = results.filter(([, ok]) => ok).length
-  console.log('GRADE:' + JSON.stringify({ passed, total: TOTAL }))
+  const passedIds = results.filter(([, ok]) => ok).map(([name]) => name)
+  console.log('GRADE:' + JSON.stringify({ passed_ids: passedIds }))
 }
 
 main().catch((e) => {
   console.error(e)
-  console.log('GRADE:' + JSON.stringify({ passed: 0, total: TOTAL }))
+  console.log('GRADE:' + JSON.stringify({ passed_ids: [] }))
 })

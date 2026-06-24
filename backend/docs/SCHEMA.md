@@ -147,8 +147,9 @@ problems/<slug>/
 
 - `id` = `hidden/test_hidden.py` 안의 함수명과 **정확히 일치**해야 함
 - `weight` = 해당 케이스가 accuracy에 기여하는 상대적 비중
-- `run_grade.py` 없이도 grade.py가 weight 인식 grader를 주입한다: `passed`는 통과 케이스의
-  weight 합, `total`은 전체 weight 합 (`cases`에 없는 테스트는 0점 → `passed ≤ total` 보장)
+- `run_grade.py` 없이도 grade.py가 grader를 주입한다. grader는 통과한 case id 목록만
+  보고하고(`GRADE:{"passed_ids":[...]}`), 호스트가 `weight`로 배점을 매긴다 — accuracy는
+  통과 weight 합 / 전체 weight 합. `cases`에 없는 id는 무시되어 `passed ≤ total` 보장
 
 ### sql — `sql-scenarios`
 
@@ -166,8 +167,8 @@ problems/<slug>/
 ```
 
 - `run_grade.py`가 여러 데이터 시나리오에 `solution.sql`을 실행하고 결과셋 비교
-- `run_grade.py` 출력: `GRADE:{"passed": N, "total": M}`
-- `cases`는 **문서화 목적** — 러너는 `cmd`에 위임, weight는 grader에서 직접 집계
+- `run_grade.py` 출력: `GRADE:{"passed_ids":[...]}` (통과한 case id 목록)
+- `cases[].id`는 grader의 시나리오 id와 일치해야 함 — 호스트가 `weight`로 배점·케이스수 집계
 
 ### frontend — `browser-scenarios` (문제별 그레이더, sql-scenarios와 동형)
 
@@ -192,8 +193,8 @@ SQL의 `sql-scenarios`와 같은 방식 — 문제별 `cmd` 그레이더에 위�
 ```
 
 - `run_grade.js`는 헤드리스 브라우저를 직접 띄워 데스크톱/모바일 레이아웃·추천 카드 구분·
-  axe-core 접근성을 검증하고 `GRADE:{"passed":N,"total":M}` 출력 (sql-scenarios와 동일 계약)
-- `cases`는 **문서화·분모 용도** — grade.py가 `hidden.cases` 개수를 authoritative total로 사용
+  axe-core 접근성을 검증하고 `GRADE:{"passed_ids":[...]}` 출력 (sql-scenarios와 동일 계약)
+- `cases[].id`는 grader의 단언 id와 일치 — 호스트가 `weight`로 배점·케이스수 집계
 - 현재 유일한 frontend 문제 `responsive-pricing`이 이 형식을 쓴다
 
 ---
@@ -330,7 +331,7 @@ SQL의 `sql-scenarios`와 같은 방식 — 문제별 `cmd` 그레이더에 위�
   → hidden/ 아티팩트 주입 (에이전트 작업폴더엔 절대 들어가지 않음)
   → docker run --rm (network none, mem/pid 제한):
       ① open 재실행 → 실패 시 accuracy = 0 (단락)
-      ② hidden 실행 → GRADE:{"passed": W, "total": T}
+      ② hidden 실행 → GRADE:{"passed_ids":[...]} → 호스트가 weight로 배점/케이스수 집계
   → accuracy = W / T
   → turn_efficiency  = clamp(par.turns  / actual_turns,  0, 1)
   → token_efficiency = clamp(par.tokens / actual_tokens, 0, 1)
