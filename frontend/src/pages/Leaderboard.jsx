@@ -13,7 +13,7 @@ export default function Leaderboard() {
   const { data: problem } = useProblem(id)
   const { data: problems } = useProblems()
   const { data: entries, isLoading, isError, error } = useLeaderboard(id)
-  const [tab, setTab] = useState('passed') // 'passed' | 'turns'
+  const [tab, setTab] = useState('score') // 'score' | 'turns'
 
   // problem picker: "전체" (global) + one option per problem
   const scopeOptions = useMemo(
@@ -33,7 +33,7 @@ export default function Leaderboard() {
     }))
     return tab === 'turns'
       ? [...list].sort((a, b) => a.turns - b.turns)
-      : [...list].sort((a, b) => b.passed - a.passed)
+      : [...list].sort((a, b) => b.score - a.score)
   }, [entries, tab])
 
   return (
@@ -60,10 +60,10 @@ export default function Leaderboard() {
               </div>
               <div className={`tracks ${styles.tabs}`}>
                 <button
-                  className={tab === 'passed' ? 'active' : ''}
-                  onClick={() => setTab('passed')}
+                  className={tab === 'score' ? 'active' : ''}
+                  onClick={() => setTab('score')}
                 >
-                  통과 랭킹
+                  점수 랭킹
                 </button>
                 <button
                   className={tab === 'turns' ? 'active' : ''}
@@ -77,7 +77,7 @@ export default function Leaderboard() {
             <div className={styles.head}>
               <div>순위</div>
               <div>이름</div>
-              <div className="t-right">통과</div>
+              <div className="t-right">점수</div>
               <div className="t-right">턴</div>
             </div>
 
@@ -95,7 +95,7 @@ export default function Leaderboard() {
                   </span>
                   <span className={styles.nameText}>{row.user}</span>
                 </div>
-                <div className={`mono ${styles.cell}`}>{row.passed}</div>
+                <div className={`mono ${styles.cell}`}>{row.score}</div>
                 <div className={`mono ${styles.cell}`}>{row.turns}</div>
               </div>
             ))}

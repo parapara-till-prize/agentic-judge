@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import { Badge, Chip } from '../components/ui'
 import Markdown from '../components/Markdown'
 import { useProblem } from '../api/queries'
+import { BASE_URL } from '../api/client'
 import styles from '../styles/pages/ProblemDetail.module.css'
 
 export default function ProblemDetail() {
@@ -51,7 +52,10 @@ export default function ProblemDetail() {
 
         {/* body */}
         <div className={styles.body}>
-          <Markdown source={problem.statement} />
+          <Markdown
+            source={problem.statement}
+            assetBase={`${BASE_URL}/problems/${problem.id}/assets/`}
+          />
         </div>
 
         {/* footer */}

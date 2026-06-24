@@ -23,7 +23,7 @@ if _envf.exists():
 
 from fastapi import Depends, FastAPI, HTTPException, Response  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import StreamingResponse  # noqa: E402
+from fastapi.responses import FileResponse, StreamingResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from sqlmodel import Session, select  # noqa: E402
 
@@ -248,6 +248,23 @@ def get_problem(problem_id: str, user: str = Depends(auth.get_optional_user)):
     statement_file = PROBLEMS / slug / "statement.md"
     card["statement"] = statement_file.read_text(encoding="utf-8") if statement_file.exists() else ""
     return card
+
+
+# Statement assets (e.g. "expected result" preview images). Only top-level image files of a
+# problem folder are served — never repo/ or hidden/ subpaths — so the hidden grader can't be
+# fetched. Author references them in statement.md as `![](preview-desktop.png)`.
+_ASSET_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+
+
+@app.get("/problems/{problem_id}/assets/{filename}")
+def get_problem_asset(problem_id: str, filename: str):
+    slug, _ = _resolve(problem_id)
+    if "/" in filename or "\\" in filename or filename.startswith("."):
+        raise HTTPException(404, "not found")
+    path = PROBLEMS / slug / filename
+    if path.suffix.lower() not in _ASSET_EXTS or not path.is_file():
+        raise HTTPException(404, "not found")
+    return FileResponse(path)
 
 
 @app.post("/attempts")
@@ -560,15 +577,16 @@ def leaderboard(problem_id: str = None):
             q = q.where(Submission.problem_id == problem_id)
         subs = session.exec(q).all()
 
-    # best submission per user: most passed, then fewest turns
+    # best submission per user: highest score (0–1000, accuracy + efficiency), then fewest
+    # turns. score is comparable across problems, unlike raw weighted `passed`.
     best = {}
     for s in subs:
         cur = best.get(s.user)
-        if cur is None or (s.passed, -s.turns) > (cur.passed, -cur.turns):
+        if cur is None or (s.score, -s.turns) > (cur.score, -cur.turns):
             best[s.user] = s
 
-    ranked = sorted(best.values(), key=lambda s: (-s.passed, s.turns))
+    ranked = sorted(best.values(), key=lambda s: (-s.score, s.turns))
     return [
-        {"rank": i + 1, "user": s.user, "turns": s.turns, "passed": s.passed}
+        {"rank": i + 1, "user": s.user, "turns": s.turns, "score": s.score, "passed": s.passed}
         for i, s in enumerate(ranked)
     ]

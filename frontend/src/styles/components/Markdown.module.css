@@ -87,6 +87,19 @@
   color: var(--text-h);
 }
 
+/* images (e.g. statement "expected result" previews) */
+.md img {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  /* tall portrait previews (e.g. a mobile screenshot) shrink to phone size instead of
+     stretching the whole statement panel; wide ones stay capped by max-width */
+  max-height: 560px;
+  display: block;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+}
+
 /* GFM tables */
 .md table {
   width: 100%;
