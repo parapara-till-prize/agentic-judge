@@ -1,19 +1,19 @@
 {
   "schema_version": 2,
-  "id": "dept-avg-salary",
+  "id": 2207,
   "title": "부서별 평균 급여",
   "type": "sql",
   "category": "집계 쿼리",
   "difficulty": "basic",
   "skills": ["GROUP BY", "필터링"],
-  "submission": { "entry": "repo/solution.sql", "runtime": "judge-sql:base" },
+  "submission": { "entry": "solution.sql", "runtime": "judge-sql:base" },
   "open": {
     "kind": "sql-visible",
-    "cmd": "python3 repo/run_tests.py"
+    "cmd": "python3 run_tests.py"
   },
   "hidden": {
     "kind": "sql-scenarios",
-    "cmd": "python3 hidden/run_grade.py",
+    "cmd": "python3 run_grade.py",
     "cases": [
       { "id": "basic_all_active",          "weight": 1 },
       { "id": "active_filter_changes_avg", "weight": 2 },

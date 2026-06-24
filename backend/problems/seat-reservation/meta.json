@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
-  "id": "seat-reservation",
+  "id": 1011,
   "title": "선착순 좌석 예약",
   "type": "algorithm",
   "category": "동시성",
   "difficulty": "hard",
   "skills": ["원자성", "saga", "멱등성"],
-  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "submission": { "entry": "solution.py", "runtime": "judge-py:base" },
   "open": {
     "kind": "pytest-visible",
-    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+    "cmd": "python3 -m pytest tests/test_visible.py -q --tb=short"
   },
   "hidden": {
     "kind": "concurrency",

@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
-  "id": "extend-log-parser",
+  "id": 1004,
   "title": "로그 파서 확장",
   "type": "algorithm",
   "category": "알고리즘",
   "difficulty": "basic",
   "skills": ["문자열", "정규식"],
-  "submission": { "entry": "repo/log_entry.py", "runtime": "judge-py:base" },
+  "submission": { "entry": "log_entry.py", "runtime": "judge-py:base" },
   "open": {
     "kind": "pytest-visible",
-    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+    "cmd": "python3 -m pytest tests/test_visible.py -q --tb=short"
   },
   "hidden": {
     "kind": "pytest-hidden",

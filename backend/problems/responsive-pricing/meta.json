@@ -1,19 +1,19 @@
 {
   "schema_version": 2,
-  "id": "responsive-pricing",
+  "id": 3001,
   "title": "반응형 요금제 카드",
   "type": "frontend",
   "category": "반응형 레이아웃",
   "difficulty": "mid",
   "skills": ["반응형", "Flexbox/Grid", "접근성"],
-  "submission": { "entry": "repo/index.html", "runtime": "judge-browser:base" },
+  "submission": { "entry": "index.html", "runtime": "judge-browser:base" },
   "open": {
     "kind": "browser-visible",
-    "cmd": "node repo/tests/run_visible.js"
+    "cmd": "node tests/run_visible.js"
   },
   "hidden": {
     "kind": "browser-scenarios",
-    "cmd": "node hidden/run_grade.js",
+    "cmd": "node run_grade.js",
     "cases": [
       { "id": "layout_row",        "weight": 1 },
       { "id": "equal_width",       "weight": 1 },

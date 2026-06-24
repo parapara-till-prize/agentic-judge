@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
-  "id": "atomic-counter",
+  "id": 1001,
   "title": "원자적 카운터",
   "type": "algorithm",
   "category": "동시성",
   "difficulty": "basic",
   "skills": ["원자성", "경쟁 상태"],
-  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "submission": { "entry": "solution.py", "runtime": "judge-py:base" },
   "open": {
     "kind": "pytest-visible",
-    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+    "cmd": "python3 -m pytest tests/test_visible.py -q --tb=short"
   },
   "hidden": {
     "kind": "concurrency",
