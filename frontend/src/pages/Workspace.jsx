@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Folder, Document, CheckmarkFilled, ErrorFilled, Locked, Play } from '@carbon/icons-react'
+import { Folder, Document, CheckmarkFilled, ErrorFilled, Locked, Play, Code, View } from '@carbon/icons-react'
 import { Badge } from '../components/ui'
 import Markdown from '../components/Markdown'
 import CodeEditor from '../components/CodeEditor'
@@ -61,6 +61,7 @@ export default function Workspace() {
   const [draft, setDraft] = useState('')
   const [sendError, setSendError] = useState(null)
   const [selectedPath, setSelectedPath] = useState(null)
+  const [centerTab, setCenterTab] = useState('code') // frontend: 코드 / 미리보기
   const [resultOpen, setResultOpen] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const chatEndRef = useRef(null)
@@ -292,7 +293,7 @@ export default function Workspace() {
 
   const starting = authed && (startMut.isPending || (!attemptId && !startMut.isError))
   const title = problem?.title ?? '문제'
-  // frontend problems swap the example-tests panel for a live render + console preview
+  // frontend problems add a 미리보기 (live render) tab beside the code editor
   const isFrontend = problem?.domain === 'frontend'
 
   // don't render the workspace chrome for guests (or during the auth check) — the effect
@@ -466,20 +467,46 @@ export default function Workspace() {
             aria-orientation="horizontal"
           />
 
-          {/* code editor — direct edits land in the attempt workdir (the source of truth) */}
-          <CodeEditor
-            key={activePath ?? '∅'}
-            path={activePath}
-            content={activeFile?.content ?? ''}
-            locked={agentBusy}
-            saving={saveMut.isPending}
-            onSave={saveActiveFile}
-          />
-          <div className={styles.codeHint}>
-            직접 편집해 저장하면 로컬 테스트·제출에 그대로 반영돼요.
+          {/* middle: code editor under a 코드 pill (kept across all domains for a consistent
+              strip); frontend problems add a 미리보기 pill that swaps in the live render */}
+          <div className={styles.centerStack}>
+            <div className={styles.centerTabs}>
+              <button
+                className={centerTab === 'code' ? styles.pvTabOn : styles.pvTab}
+                onClick={() => setCenterTab('code')}
+              >
+                <Code size={13} /> 코드
+              </button>
+              {isFrontend && (
+                <button
+                  className={centerTab === 'preview' ? styles.pvTabOn : styles.pvTab}
+                  onClick={() => setCenterTab('preview')}
+                >
+                  <View size={13} /> 미리보기
+                </button>
+              )}
+            </div>
+            {isFrontend && centerTab === 'preview' ? (
+              <PreviewPane files={files} />
+            ) : (
+              <>
+                {/* direct edits land in the attempt workdir (the source of truth) */}
+                <CodeEditor
+                  key={activePath ?? '∅'}
+                  path={activePath}
+                  content={activeFile?.content ?? ''}
+                  locked={agentBusy}
+                  saving={saveMut.isPending}
+                  onSave={saveActiveFile}
+                />
+                <div className={styles.codeHint}>
+                  직접 편집해 저장하면 로컬 테스트·제출에 그대로 반영돼요.
+                </div>
+              </>
+            )}
           </div>
 
-          {/* resizer: code viewer | tests */}
+          {/* resizer: code/preview | tests */}
           <div
             className={styles.vresizer}
             onMouseDown={(e) => startVResize('tests', e)}
@@ -487,10 +514,7 @@ export default function Workspace() {
             aria-orientation="horizontal"
           />
 
-          {/* tests — or, for frontend problems, a live render + console preview */}
-          {isFrontend ? (
-            <PreviewPane files={files} height={testsH} />
-          ) : (
+          {/* example tests — shown for every problem, including frontend */}
           <div className={styles.tests} style={{ height: testsH }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
@@ -559,7 +583,6 @@ export default function Workspace() {
               예제 테스트를 통과해도 정답이 보장되진 않아요. 제출은 가려진 테스트로 채점돼요.
             </div>
           </div>
-          )}
         </div>
       </div>
 
@@ -574,7 +597,6 @@ export default function Workspace() {
         danger
         onConfirm={() => {
           navigate(`/problem/${id}`)
-          toast.info('시도를 종료했어요')
         }}
       />
     </div>
