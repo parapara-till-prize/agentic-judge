@@ -8,6 +8,7 @@ import { streamMessage } from '../api/stream'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
 import ResultModal from '../components/ResultModal'
+import ConfirmModal from '../components/ConfirmModal'
 import styles from './Workspace.module.css'
 
 const TOOL_CLASS = {
@@ -41,46 +42,87 @@ export default function Workspace() {
   const { data: me, isLoading: meLoading } = useMe()
   const openLogin = useUiStore((s) => s.openLogin)
   const {
-    attemptId, problemId, statement, files, messages, turns, tokens,
+    attemptId, statement, files, messages, turns, tokens,
     testResult, agentBusy,
-    startSession, pushUserMessage, setSubmitResult,
+    startSession, resetSession, pushUserMessage, setSubmitResult,
     streamToolCall, streamAgentText, streamFiles, streamTestResult,
     finishTurn, endTurnError,
   } = useSessionStore()
 
   const startMut = useStartAttempt()
   const submitMut = useSubmit(attemptId)
+  const authed = Boolean(me)
 
   const [draft, setDraft] = useState('')
   const [sendError, setSendError] = useState(null)
   const [selectedPath, setSelectedPath] = useState(null)
   const [resultOpen, setResultOpen] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
   const chatEndRef = useRef(null)
-  const startedRef = useRef(null)
 
-  // start (or resume) the attempt session for this problem — requires a session user
-  useEffect(() => {
-    if (!me) return // anonymous: wait until logged in (backend /attempts is 401 otherwise)
-    if (startedRef.current === id) return
-    if (problemId === id && attemptId) {
-      startedRef.current = id
-      return
+  // resizable panes: left/right widths in px, center fills the rest (1fr)
+  const panesRef = useRef(null)
+  const [leftW, setLeftW] = useState(340)
+  const [rightW, setRightW] = useState(420)
+
+  // start a drag on either splitter; clamps so the center pane keeps >=320px
+  function startResize(side, e) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startLeft = leftW
+    const startRight = rightW
+    const total = panesRef.current?.getBoundingClientRect().width ?? 1200
+    const onMove = (ev) => {
+      const dx = ev.clientX - startX
+      if (side === 'left') {
+        const max = total - startRight - 320
+        setLeftW(Math.max(240, Math.min(max, startLeft + dx)))
+      } else {
+        const max = total - startLeft - 320
+        setRightW(Math.max(280, Math.min(max, startRight - dx)))
+      }
     }
-    startedRef.current = id
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // Start a fresh attempt on entering a problem (or once auth becomes available).
+  // StrictMode-safe: dev double-invokes this effect on mount, and React Query drops the
+  // per-`mutate` onSuccess of the throwaway first mount — so we guard with an `ignore`
+  // flag and let the live mount's result win instead of relying on a ref (which would pin
+  // the single fire to the discarded mount and leave us stuck on "준비 중"). Depending on
+  // the boolean `authed` (not the `me` object) avoids re-firing on background refetch.
+  useEffect(() => {
+    if (!authed) return // anonymous: backend /attempts is 401; wait for login
+    let ignore = false
+    resetSession() // drop any prior session so the UI doesn't flash stale transcript/files
     startMut.mutate(
       { problemId: id },
       {
-        onSuccess: (d) =>
+        onSuccess: (d) => {
+          if (ignore) return
           startSession({
             attemptId: d.attempt_id,
             problemId: id,
             statement: d.statement,
             files: d.files,
-          }),
+          })
+        },
       },
     )
+    return () => {
+      ignore = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, me])
+  }, [id, authed])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -146,6 +188,13 @@ export default function Workspace() {
     }
   }
 
+  // leaving discards the in-progress attempt (re-entry starts fresh), so confirm first —
+  // but only once there's actual progress worth losing.
+  function requestLeave() {
+    if (messages.length > 0) setLeaveOpen(true)
+    else navigate(`/problem/${id}`)
+  }
+
   function submit() {
     if (!attemptId || submitMut.isPending) return
     submitMut.mutate(undefined, {
@@ -156,7 +205,6 @@ export default function Workspace() {
     })
   }
 
-  const authed = Boolean(me)
   const starting = authed && (startMut.isPending || (!attemptId && !startMut.isError))
   const title = problem?.title ?? '문제'
 
@@ -167,7 +215,7 @@ export default function Workspace() {
         <div className={styles.topLeft}>
           <button
             className={styles.backBtn}
-            onClick={() => navigate(`/problem/${id}`)}
+            onClick={requestLeave}
             aria-label="뒤로"
           >
             ←
@@ -196,7 +244,11 @@ export default function Workspace() {
       </div>
 
       {/* 3 PANES */}
-      <div className={styles.panes}>
+      <div
+        ref={panesRef}
+        className={styles.panes}
+        style={{ gridTemplateColumns: `${leftW}px 6px 1fr 6px ${rightW}px` }}
+      >
         {/* LEFT: problem */}
         <div className={styles.pane}>
           <div className={styles.scroll}>
@@ -214,6 +266,14 @@ export default function Workspace() {
             </div>
           </div>
         </div>
+
+        {/* resizer: left | center */}
+        <div
+          className={styles.resizer}
+          onMouseDown={(e) => startResize('left', e)}
+          role="separator"
+          aria-orientation="vertical"
+        />
 
         {/* CENTER: agent chat */}
         <div className={styles.pane}>
@@ -299,6 +359,14 @@ export default function Workspace() {
             </div>
           </div>
         </div>
+
+        {/* resizer: center | right */}
+        <div
+          className={styles.resizer}
+          onMouseDown={(e) => startResize('right', e)}
+          role="separator"
+          aria-orientation="vertical"
+        />
 
         {/* RIGHT: files + code + tests */}
         <div className={styles.pane}>
@@ -401,6 +469,16 @@ export default function Workspace() {
       </div>
 
       <ResultModal open={resultOpen} onOpenChange={setResultOpen} problemId={id} />
+      <ConfirmModal
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        title="워크스페이스를 나갈까요?"
+        message="나가면 지금 진행 중인 시도와 에이전트 대화가 사라집니다. 다시 들어오면 새 시도로 시작됩니다."
+        confirmLabel="나가기"
+        cancelLabel="계속 풀기"
+        danger
+        onConfirm={() => navigate(`/problem/${id}`)}
+      />
     </div>
   )
 }

@@ -68,8 +68,17 @@
 .panes {
   flex: 1;
   display: grid;
-  grid-template-columns: 340px 1fr 420px;
+  grid-template-columns: 340px 6px 1fr 6px 420px;
   min-height: 0;
+}
+.resizer {
+  cursor: col-resize;
+  background: var(--border);
+  transition: background 0.12s;
+}
+.resizer:hover,
+.resizer:active {
+  background: var(--accent);
 }
 .pane {
   border-right: 1px solid var(--border);
@@ -408,12 +417,15 @@
 
 @media (max-width: 1100px) {
   .panes {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     height: auto;
   }
   .pane {
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+  .resizer {
+    display: none;
   }
 }
 
