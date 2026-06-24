@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "id": "paginate",
+  "title": "페이지네이션",
+  "type": "algorithm",
+  "category": "API 구현",
+  "difficulty": "basic",
+  "skills": ["슬라이싱", "경계 처리"],
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_first_page",         "weight": 1 },
+      { "id": "test_last_partial",       "weight": 2 },
+      { "id": "test_out_of_range_empty", "weight": 2 },
+      { "id": "test_size_zero_guard",    "weight": 1 },
+      { "id": "test_total_pages_ceil",   "weight": 1 },
+      { "id": "test_one_indexed",        "weight": 1 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "naive slicing breaks: out-of-range page must return empty (not error), size<=0 must raise, total_pages is ceil, page is 1-indexed."
+}

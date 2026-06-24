@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
-  "id": "balanced-brackets",
-  "title": "괄호 짝 맞추기",
+  "id": "is-palindrome",
+  "title": "회문 판별",
   "type": "algorithm",
   "category": "알고리즘",
   "difficulty": "basic",
-  "skills": ["스택", "문자열"],
+  "skills": ["문자열", "투 포인터"],
   "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
   "open": {
     "kind": "pytest-visible",
@@ -15,10 +15,11 @@
     "kind": "pytest-hidden",
     "cases": [
       { "id": "test_basic",            "weight": 1 },
-      { "id": "test_nesting_order",    "weight": 2 },
-      { "id": "test_empty_is_true",    "weight": 1 },
-      { "id": "test_leading_close",    "weight": 2 },
-      { "id": "test_unmatched_opens",  "weight": 1 }
+      { "id": "test_ignore_punctuation","weight": 2 },
+      { "id": "test_case_insensitive", "weight": 2 },
+      { "id": "test_empty",            "weight": 1 },
+      { "id": "test_single_char",      "weight": 1 },
+      { "id": "test_alnum_only",       "weight": 1 }
     ]
   },
   "scoring": {
@@ -28,5 +29,5 @@
       { "key": "token_efficiency", "weight": 0.15 }
     ]
   },
-  "trap_note": "naive open-count==close-count passes visible but fails hidden: wrong nesting '([)]', leading close ')(', unmatched opens '(((' all require a stack."
+  "trap_note": "naive s==s[::-1] passes visible but fails hidden: must strip non-alphanumeric and lowercase before comparing. '.,!' -> True (no alnum chars)."
 }

@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "id": "parse-dates",
+  "title": "날짜 파싱",
+  "type": "algorithm",
+  "category": "데이터 정제",
+  "difficulty": "mid",
+  "skills": ["날짜 파싱", "다중 포맷"],
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_iso",          "weight": 1 },
+      { "id": "test_slash_short",  "weight": 2 },
+      { "id": "test_month_name",   "weight": 2 },
+      { "id": "test_invalid_skip", "weight": 1 },
+      { "id": "test_ambiguous",    "weight": 1 },
+      { "id": "test_trailing_ws",  "weight": 1 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "trap_note": "multiple formats (ISO, M/D/YY, 'Mon D YYYY'); invalid->None; M/D convention; trim ws. naive single-format parser fails."
+}
