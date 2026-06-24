@@ -369,3 +369,16 @@
     border-bottom: 1px solid var(--border);
   }
 }
+
+.sysNote {
+  align-self: center;
+  max-width: 88%;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--bg-soft, #f8fafc);
+  border: 1px solid var(--border-soft, #eef2f6);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 4px 0;
+}

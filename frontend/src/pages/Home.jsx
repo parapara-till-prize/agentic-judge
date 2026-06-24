@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Select from '../components/Select'
 import SkillFilter from '../components/SkillFilter'
 import Toggle from '../components/Toggle'
 import { Badge, DomainTag, Chip, StatusDot } from '../components/ui'
-import { PROBLEMS, TRACKS, ALL_SKILLS } from '../data/mock'
+import { TRACKS } from '../data/mock'
+import { useProblems } from '../api/queries'
+import { useUiStore } from '../store/uiStore'
 import styles from './Home.module.css'
 
 const DIFFICULTY_OPTIONS = [
@@ -24,32 +26,40 @@ const SORT_OPTIONS = [
 
 export default function Home() {
   const navigate = useNavigate()
-  const [track, setTrack] = useState('all')
-  const [query, setQuery] = useState('')
-  const [difficulty, setDifficulty] = useState('all')
-  const [skills, setSkills] = useState([])
-  const [unsolvedOnly, setUnsolvedOnly] = useState(false)
-  const [sort, setSort] = useState('rate-desc')
+  const { data: problems, isLoading, isError, error } = useProblems()
+  const {
+    track, query, difficulty, skills, unsolvedOnly, sort,
+    setTrack, setQuery, setDifficulty, toggleSkill, clearSkills,
+    setUnsolvedOnly, setSort,
+  } = useUiStore()
+
+  // skills come from the live problem set, not a hardcoded list
+  const allSkills = useMemo(() => {
+    const set = new Set((problems ?? []).flatMap((p) => p.skills ?? []))
+    return [...set].sort((a, b) => a.localeCompare(b, 'ko'))
+  }, [problems])
 
   const rows = useMemo(() => {
-    const filtered = PROBLEMS.filter((p) => {
+    // normalize backend shape -> what the table renders
+    const list = (problems ?? []).map((p) => ({
+      ...p,
+      rate: (p.solved_rate ?? 0) * 100,
+      solved: false, // per-user solved status isn't on the list endpoint yet
+    }))
+    const filtered = list.filter((p) => {
       if (track !== 'all' && p.domain !== track) return false
       if (difficulty !== 'all' && p.difficulty !== difficulty) return false
       if (skills.length && !skills.every((s) => p.skills.includes(s))) return false
       if (unsolvedOnly && p.solved) return false
-      if (query && !p.title.includes(query) && !String(p.id).includes(query))
-        return false
+      if (query && !p.title.includes(query) && !p.id.includes(query)) return false
       return true
     })
     const sorted = [...filtered]
     if (sort === 'rate-desc') sorted.sort((a, b) => b.rate - a.rate)
     else if (sort === 'rate-asc') sorted.sort((a, b) => a.rate - b.rate)
-    else if (sort === 'id-asc') sorted.sort((a, b) => a.id - b.id)
+    else if (sort === 'id-asc') sorted.sort((a, b) => a.id.localeCompare(b.id))
     return sorted
-  }, [track, query, difficulty, skills, unsolvedOnly, sort])
-
-  const toggleSkill = (s) =>
-    setSkills((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))
+  }, [problems, track, query, difficulty, skills, unsolvedOnly, sort])
 
   return (
     <div className="app">
@@ -98,10 +108,10 @@ export default function Home() {
                 ariaLabel="난이도 필터"
               />
               <SkillFilter
-                skills={ALL_SKILLS}
+                skills={allSkills}
                 selected={skills}
                 onToggle={toggleSkill}
-                onClear={() => setSkills([])}
+                onClear={clearSkills}
               />
               <Toggle pressed={unsolvedOnly} onPressedChange={setUnsolvedOnly}>
                 미해결만
@@ -152,7 +162,13 @@ export default function Home() {
             </div>
           ))}
 
-          {rows.length === 0 && (
+          {isLoading && <div className={styles.empty}>문제를 불러오는 중…</div>}
+          {isError && (
+            <div className={styles.empty}>
+              문제를 불러오지 못했습니다. {error?.message}
+            </div>
+          )}
+          {!isLoading && !isError && rows.length === 0 && (
             <div className={styles.empty}>조건에 맞는 문제가 없습니다.</div>
           )}
         </div>

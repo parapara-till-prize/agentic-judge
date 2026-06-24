@@ -1,19 +1,71 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { RESULT } from '../data/mock'
+import { useProblem } from '../api/queries'
+import { useSessionStore } from '../store/sessionStore'
 import styles from './Result.module.css'
+
+const fmtTokens = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n ?? 0))
+
+// short qualifier shown next to each axis label
+const AXIS_NOTE = {
+  accuracy: '히든 통과',
+  turn_efficiency: '턴 수',
+  token_efficiency: '토큰 수',
+}
+
+const toneFor = (pct) => (pct >= 75 ? 'ok' : pct >= 50 ? 'warn' : 'danger')
+
+// map the backend axis breakdown -> the criteria-bar shape this page renders
+const axesToCriteria = (axes) =>
+  axes.map((a) => ({
+    label: a.label,
+    note: AXIS_NOTE[a.key] ?? '',
+    weight: `×${Math.round(a.weight * 100)}%`,
+    pct: Math.round(a.pct),
+    tone: toneFor(a.pct),
+    detail: `${Math.round(a.pct)} → ${Math.round(a.points)}`,
+  }))
 
 export default function Result() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const r = RESULT
-  const pid = id || r.problemId
+  const pid = id
+  const { data: problem } = useProblem(id)
+  const submit = useSessionStore((s) => s.submitResult)
+
+  // Real grader isn't wired yet (submit is a backend stub returning zeros), so fall back
+  // to the demo scorecard for the visual breakdown the backend can't produce.
+  const graded = submit && submit.total > 0
+  const r = {
+    ...RESULT,
+    title: problem?.title ?? RESULT.title,
+    ...(graded
+      ? {
+          score: submit.score,
+          hiddenPass: submit.passed,
+          hiddenTotal: submit.total,
+          turns: submit.turns,
+          tokens: fmtTokens(submit.tokens),
+          hiddenCases: Array.from({ length: submit.total }, (_, i) => i < submit.passed),
+          criteria: submit.axes?.length ? axesToCriteria(submit.axes) : RESULT.criteria,
+          preset: '문제별 가중치 구성',
+        }
+      : null),
+  }
+  const failCount = graded ? r.hiddenTotal - r.hiddenPass : null
 
   return (
     <div className="app">
       <Navbar />
       <main className="page page--narrow">
         <div className="card card--flush">
+          {!graded && (
+            <div className={styles.notice}>
+              ⓘ 채점 그레이더가 아직 백엔드에 연결되지 않아 데모 점수표를 표시합니다.
+              {submit?.feedback ? ` (서버 응답: ${submit.feedback})` : ''}
+            </div>
+          )}
           {/* score header */}
           <div className={styles.scoreHeader}>
             <div className={styles.ring}>
@@ -93,27 +145,50 @@ export default function Result() {
               ))}
             </div>
             <div className={styles.hiddenNote}>
-              실패 케이스 <span className="mono">{r.failedCases.join(', ')}</span> — 음수 누적과
-              경계 인덱스에서 갈림. 상세 입력은 비공개.
+              {graded ? (
+                failCount === 0 ? (
+                  '히든 테스트를 전부 통과했습니다. 상세 입력은 비공개.'
+                ) : (
+                  <>
+                    히든 <span className="mono">{failCount}</span>개 케이스에서 실패 — 경계
+                    조건을 점검하세요. 상세 입력은 비공개.
+                  </>
+                )
+              ) : (
+                <>
+                  실패 케이스 <span className="mono">{r.failedCases.join(', ')}</span> — 음수
+                  누적과 경계 인덱스에서 갈림. 상세 입력은 비공개.
+                </>
+              )}
             </div>
           </Section>
 
           {/* coaching */}
           <Section title="축별 비교 & 코칭">
-            <div className={styles.compareGrid}>
-              <Compare label="효율 · 사용 턴" you="12턴" youPct={100} youColor="var(--warn)" top="4턴" topPct={33} />
-              <Compare label="정확도 · 히든 통과" you="90%" youPct={90} youColor="var(--accent)" top="100%" topPct={100} />
-            </div>
-            <div className={styles.coaching}>
-              <b style={{ color: 'var(--text-h)' }}>어디서 갈렸나</b>
-              <br />· <span style={{ color: 'var(--warn)', fontWeight: 600 }}>효율</span>: 턴 3–7을
-              단순 반복 버전에 소비. 상위 solver는 첫 지시에서 바로{' '}
-              <span className="mono">누적합</span> 자료구조를 요구했습니다.
-              <br />· <span style={{ color: 'var(--danger)', fontWeight: 600 }}>정확도</span>:{' '}
-              <span className="mono">prefix[i−1]</span> 경계를 직접 짚지 않아 음수 케이스 2개 실패.
-              “<span className="mono">i=1</span>일 때 확인해줘”처럼 엣지를 명시했다면 둘 다 막을 수
-              있었습니다.
-            </div>
+            {graded ? (
+              <div className={styles.coaching}>
+                <b style={{ color: 'var(--text-h)' }}>채점 요약</b>
+                <br />
+                {r.feedback ?? submit.feedback}
+              </div>
+            ) : (
+              <>
+                <div className={styles.compareGrid}>
+                  <Compare label="효율 · 사용 턴" you="12턴" youPct={100} youColor="var(--warn)" top="4턴" topPct={33} />
+                  <Compare label="정확도 · 히든 통과" you="90%" youPct={90} youColor="var(--accent)" top="100%" topPct={100} />
+                </div>
+                <div className={styles.coaching}>
+                  <b style={{ color: 'var(--text-h)' }}>어디서 갈렸나</b>
+                  <br />· <span style={{ color: 'var(--warn)', fontWeight: 600 }}>효율</span>: 턴 3–7을
+                  단순 반복 버전에 소비. 상위 solver는 첫 지시에서 바로{' '}
+                  <span className="mono">누적합</span> 자료구조를 요구했습니다.
+                  <br />· <span style={{ color: 'var(--danger)', fontWeight: 600 }}>정확도</span>:{' '}
+                  <span className="mono">prefix[i−1]</span> 경계를 직접 짚지 않아 음수 케이스 2개 실패.
+                  “<span className="mono">i=1</span>일 때 확인해줘”처럼 엣지를 명시했다면 둘 다 막을 수
+                  있었습니다.
+                </div>
+              </>
+            )}
           </Section>
 
           {/* footer */}

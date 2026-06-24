@@ -24,7 +24,7 @@
 .head,
 .row {
   display: grid;
-  grid-template-columns: 64px 1fr 110px 130px 130px;
+  grid-template-columns: 64px 1fr 130px 130px;
   gap: 12px;
   align-items: center;
   padding: 12px 26px;
@@ -111,4 +111,11 @@
 .axisPrimary {
   background: var(--accent-soft-bg);
   border-color: var(--accent-soft-border);
+}
+
+.state {
+  padding: 36px 26px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
 }

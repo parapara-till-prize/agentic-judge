@@ -51,3 +51,46 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+/* logged-in cluster: avatar · name · logout */
+.user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.iconBtn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+}
+.iconBtn:hover {
+  background: var(--surface-2);
+  color: var(--text-h);
+}
+
+/* logged-out */
+.loginBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+}
+.loginBtn:hover {
+  background: var(--surface-2);
+}

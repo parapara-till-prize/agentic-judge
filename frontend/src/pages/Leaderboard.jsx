@@ -2,23 +2,28 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { DomainTag } from '../components/ui'
-import { LEADERBOARD, PROBLEMS, SCORING_PRESETS } from '../data/mock'
+import { SCORING_PRESETS } from '../data/mock'
+import { useProblem, useLeaderboard } from '../api/queries'
 import styles from './Leaderboard.module.css'
+
+const AVATAR_COLORS = ['#16a34a', '#2563eb', '#7c3aed', '#0891b2', '#d97706', '#db2777']
 
 export default function Leaderboard() {
   const { id } = useParams()
-  const problem = PROBLEMS.find((p) => String(p.id) === id) || PROBLEMS[0]
-  const [tab, setTab] = useState('rate') // 'rate' | 'turns'
+  const { data: problem } = useProblem(id)
+  const { data: entries, isLoading, isError, error } = useLeaderboard(id)
+  const [tab, setTab] = useState('passed') // 'passed' | 'turns'
 
   const rows = useMemo(() => {
-    const list = [...LEADERBOARD]
+    const list = (entries ?? []).map((e, i) => ({
+      ...e,
+      initial: (e.user || '?').charAt(0).toUpperCase(),
+      avBg: AVATAR_COLORS[i % AVATAR_COLORS.length],
+    }))
     return tab === 'turns'
-      ? list.sort((a, b) => a.turns - b.turns)
-      : list.sort((a, b) => b.score - a.score)
-  }, [tab])
-
-  const col3 = tab === 'turns' ? '최소 턴' : '정답률'
-  const col4 = '점수'
+      ? [...list].sort((a, b) => a.turns - b.turns)
+      : [...list].sort((a, b) => b.passed - a.passed)
+  }, [entries, tab])
 
   return (
     <div className="app">
@@ -30,14 +35,14 @@ export default function Leaderboard() {
             <div className={styles.lbHeader}>
               <div className={styles.lbTitle}>리더보드</div>
               <div className={styles.lbSub}>
-                #{problem.id} {problem.title}
+                #{id} {problem?.title ?? ''}
               </div>
               <div className={`tracks ${styles.tabs}`}>
                 <button
-                  className={tab === 'rate' ? 'active' : ''}
-                  onClick={() => setTab('rate')}
+                  className={tab === 'passed' ? 'active' : ''}
+                  onClick={() => setTab('passed')}
                 >
-                  정답률 랭킹
+                  통과 랭킹
                 </button>
                 <button
                   className={tab === 'turns' ? 'active' : ''}
@@ -51,13 +56,12 @@ export default function Leaderboard() {
             <div className={styles.head}>
               <div>순위</div>
               <div>이름</div>
-              <div className="t-right">{col3}</div>
-              <div className="t-right">{col4}</div>
-              <div className="t-right">평균 턴</div>
+              <div className="t-right">통과</div>
+              <div className="t-right">턴</div>
             </div>
 
             {rows.map((row, i) => (
-              <div className={styles.row} key={row.name}>
+              <div className={styles.row} key={row.user}>
                 <div
                   className={`mono ${styles.rank}`}
                   style={{ color: i < 3 ? row.avBg : 'var(--text-muted)' }}
@@ -68,15 +72,20 @@ export default function Leaderboard() {
                   <span className={styles.avatar} style={{ background: row.avBg }}>
                     {row.initial}
                   </span>
-                  <span className={styles.nameText}>{row.name}</span>
+                  <span className={styles.nameText}>{row.user}</span>
                 </div>
-                <div className={`mono ${styles.cell}`}>
-                  {tab === 'turns' ? row.turns : row.rate}
-                </div>
-                <div className={`mono ${styles.cell}`}>{row.score}</div>
+                <div className={`mono ${styles.cell}`}>{row.passed}</div>
                 <div className={`mono ${styles.cell}`}>{row.turns}</div>
               </div>
             ))}
+
+            {isLoading && <div className={styles.state}>불러오는 중…</div>}
+            {isError && (
+              <div className={styles.state}>불러오지 못했습니다. {error?.message}</div>
+            )}
+            {!isLoading && !isError && rows.length === 0 && (
+              <div className={styles.state}>아직 제출 기록이 없습니다.</div>
+            )}
           </div>
 
           {/* domain-scoring module explainer */}
