@@ -39,38 +39,51 @@ def _axis_pct(key: str, ctx: dict) -> float:
 
 
 def evaluate(meta: dict, passed: int, total: int, turns: int, tokens: int) -> dict:
-    """Return {score, axes:[{key,label,weight,pct,points}]} from the problem's config."""
+    """Return {score, axes, fully_passed} from the problem's config.
+
+    Measurement and policy are separated:
+    - axes[].pct is always the true measured value (displayed as-is in the UI)
+    - efficiency axes contribute to score ONLY when all hidden tests pass (fully_passed)
+    - accuracy axis always contributes regardless
+    """
     axes_cfg = (meta.get("scoring") or {}).get("axes") or DEFAULT_AXES.get(
         meta.get("domain"), FALLBACK_AXES
     )
     weight_sum = sum(a.get("weight", 0) for a in axes_cfg) or 1.0
 
+    par = meta.get("par") or {}
     ctx = {
         "passed": passed,
         "total": total,
         "turns": turns,
         "tokens": tokens,
-        "ideal_turns": meta.get("ideal_turns", 3),
-        "ideal_tokens": meta.get("ideal_tokens", DEFAULT_IDEAL_TOKENS),
+        "ideal_turns": par.get("turns") or meta.get("ideal_turns", 3),
+        "ideal_tokens": par.get("tokens") or meta.get("ideal_tokens", DEFAULT_IDEAL_TOKENS),
     }
-    accuracy_pct = _axis_pct("accuracy", ctx)
+
+    fully_passed = total > 0 and passed == total
 
     axes = []
     for a in axes_cfg:
         key = a["key"]
-        pct = _axis_pct(key, ctx)
-        # efficiency credit only counts on a correct solution
-        if key != "accuracy" and accuracy_pct == 0:
-            pct = 0.0
+        pct = _axis_pct(key, ctx)   # always the true measured value
         weight = a.get("weight", 0) / weight_sum
+
+        # gate: efficiency axes only count toward score when all tests pass
+        score_pct = pct if (key == "accuracy" or fully_passed) else 0.0
+
         axes.append(
             {
                 "key": key,
                 "label": a.get("label", key),
                 "weight": round(weight, 4),
-                "pct": round(pct, 1),
-                "points": round(10 * pct * weight, 1),  # contribution to the 0–1000 score
+                "pct": round(pct, 1),                          # true measurement (display)
+                "points": round(10 * score_pct * weight, 1),   # gated contribution to score
             }
         )
 
-    return {"score": round(sum(ax["points"] for ax in axes)), "axes": axes}
+    return {
+        "score": round(sum(ax["points"] for ax in axes)),
+        "axes": axes,
+        "fully_passed": fully_passed,
+    }
