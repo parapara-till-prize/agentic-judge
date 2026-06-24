@@ -21,6 +21,24 @@ from pathlib import Path
 import sandbox
 
 BASE = Path(__file__).parent
+
+# Injected into grade_dir for pytest-hidden/concurrency problems that have no run_grade.py.
+# Runs test_hidden.py with pytest -v, counts PASSED/FAILED/ERROR lines, prints GRADE: JSON.
+_PYTEST_GRADE_SCRIPT = """\
+import subprocess, json, sys
+from pathlib import Path
+
+r = subprocess.run(
+    [sys.executable, "-m", "pytest", "test_hidden.py", "-v", "--tb=no"],
+    capture_output=True, text=True, cwd=Path(__file__).parent,
+)
+out = r.stdout + r.stderr
+lines = out.splitlines()
+passed = sum(1 for l in lines if l.strip().endswith("PASSED"))
+failed = sum(1 for l in lines if l.strip().endswith(("FAILED", "ERROR")))
+print("GRADE:" + json.dumps({"passed": passed, "total": passed + failed}))
+"""
+
 PROBLEMS = BASE / "problems"
 ATTEMPTS = BASE / "attempts"
 
@@ -56,9 +74,17 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     if not hit:
         return {"passed": 0, "total": 0}
     slug, meta = hit
-    runtime = meta.get("runtime", {})
-    image = runtime.get("image") or "judge-py:base"
-    grade_cmd = runtime.get("grade_cmd") or "python3 run_grade.py"
+    image = (meta.get("submission") or {}).get("runtime") or "judge-py:base"
+    hidden = meta.get("hidden") or {}
+    kind = hidden.get("kind", "pytest-hidden")
+    if kind in ("pytest-hidden", "concurrency"):
+        grade_cmd = "python3 run_grade.py"
+    else:
+        grade_cmd = (
+            hidden.get("cmd")
+            or (meta.get("runtime") or {}).get("grade_cmd")
+            or "python3 run_grade.py"
+        )
 
     workdir = ATTEMPTS / attempt_id
     hidden_dir = PROBLEMS / slug / "hidden"
@@ -86,6 +112,13 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
             dest = grade_dir / p.relative_to(hidden_dir)
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(p, dest)
+        # 3) inject run_grade.py for pytest-hidden/concurrency if hidden/ didn't supply one
+        if kind in ("pytest-hidden", "concurrency") and not (grade_dir / "run_grade.py").exists():
+            (grade_dir / "run_grade.py").write_text(_PYTEST_GRADE_SCRIPT)
+        # 4) supply harness/ so concurrency tests can import HookableStore, run_concurrent
+        harness_src = BASE / "harness"
+        if harness_src.exists() and not (grade_dir / "harness").exists():
+            shutil.copytree(harness_src, grade_dir / "harness")
         # make everything readable by `nobody` in the bind mount
         for root, dirs, files in os.walk(grade_dir):
             for d in dirs:

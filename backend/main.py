@@ -177,7 +177,7 @@ def _problem_card(pid: str, slug: str, m: dict, session: Session) -> dict:
         "title": m.get("title", slug),
         "difficulty": m.get("difficulty", "basic"),
         "category": m.get("category", ""),
-        "domain": m.get("domain", "algorithm"),
+        "domain": m.get("type", "algorithm"),
         "skills": m.get("skills", []),
         **stats,
     }
@@ -187,7 +187,7 @@ def _problem_card(pid: str, slug: str, m: dict, session: Session) -> dict:
 def list_problems():
     out = []
     with Session(engine) as session:
-        for pid, (slug, m) in sorted(_index().items(), key=lambda kv: int(kv[0])):
+        for pid, (slug, m) in sorted(_index().items(), key=lambda kv: kv[0]):
             out.append(_problem_card(pid, slug, m, session))
     return out
 
@@ -211,6 +211,9 @@ def start_attempt(body: StartAttempt, user: str = Depends(auth.get_current_user)
 
     attempt_id = uuid.uuid4().hex
     shutil.copytree(src, ATTEMPTS / attempt_id)
+    harness_src = BASE / "harness"
+    if harness_src.exists():
+        shutil.copytree(harness_src, ATTEMPTS / attempt_id / "harness")
     statement = (PROBLEMS / slug / "statement.md").read_text()
 
     with Session(engine) as session:
@@ -268,11 +271,10 @@ def run_tests(attempt_id: str, user: str = Depends(auth.get_current_user)):
             raise HTTPException(403, "not your attempt")
 
     _slug, meta = _resolve(attempt.problem_id)
-    runtime = meta.get("runtime", {})
-    test_cmd = runtime.get("test_cmd")
+    test_cmd = (meta.get("open") or {}).get("cmd")
     if not test_cmd:
         raise HTTPException(400, "this problem has no visible test command")
-    image = runtime.get("image") or "judge-py:base"
+    image = (meta.get("submission") or {}).get("runtime") or "judge-py:base"
 
     output = sandbox.run_in_container(ATTEMPTS / attempt_id, test_cmd, image)
     return {"command": test_cmd, "output": output}
@@ -298,9 +300,8 @@ def post_message(attempt_id: str, body: Message):
 
     # per-problem runtime: which image to run in + how the agent should run visible tests
     _slug, meta = _resolve(attempt.problem_id)
-    runtime = meta.get("runtime", {})
-    image = runtime.get("image") or "judge-py:base"
-    test_cmd = runtime.get("test_cmd")
+    image = (meta.get("submission") or {}).get("runtime") or "judge-py:base"
+    test_cmd = (meta.get("open") or {}).get("cmd")
 
     def gen():
         final = None
