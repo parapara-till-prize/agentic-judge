@@ -22,7 +22,7 @@ import sandbox
 
 BASE = Path(__file__).parent
 
-# Injected into grade_dir for pytest-hidden/concurrency problems that have no run_grade.py.
+# Injected into grade_dir for pytest-hidden problems that have no run_grade.py.
 # Runs test_hidden.py with pytest -v, counts PASSED/FAILED/ERROR lines, prints GRADE: JSON.
 _PYTEST_GRADE_SCRIPT = """\
 import subprocess, json, sys
@@ -77,7 +77,7 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     image = (meta.get("submission") or {}).get("runtime") or "judge-py:base"
     hidden = meta.get("hidden") or {}
     kind = hidden.get("kind", "pytest-hidden")
-    if kind in ("pytest-hidden", "concurrency"):
+    if kind == "pytest-hidden":
         grade_cmd = "python3 run_grade.py"
     else:
         grade_cmd = (
@@ -112,13 +112,9 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
             dest = grade_dir / p.relative_to(hidden_dir)
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(p, dest)
-        # 3) inject run_grade.py for pytest-hidden/concurrency if hidden/ didn't supply one
-        if kind in ("pytest-hidden", "concurrency") and not (grade_dir / "run_grade.py").exists():
+        # 3) inject run_grade.py for pytest-hidden if hidden/ didn't supply one
+        if kind == "pytest-hidden" and not (grade_dir / "run_grade.py").exists():
             (grade_dir / "run_grade.py").write_text(_PYTEST_GRADE_SCRIPT)
-        # 4) supply harness/ so concurrency tests can import HookableStore, run_concurrent
-        harness_src = BASE / "harness"
-        if harness_src.exists() and not (grade_dir / "harness").exists():
-            shutil.copytree(harness_src, grade_dir / "harness")
         # make everything readable by `nobody` in the bind mount
         for root, dirs, files in os.walk(grade_dir):
             for d in dirs:
