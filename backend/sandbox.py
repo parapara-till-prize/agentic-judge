@@ -16,33 +16,53 @@ ATTEMPTS = BASE / "attempts"
 MAX_OUTPUT = 8000  # truncate tool output so giant logs can't blow up the LLM context
 DEFAULT_IMAGE = "judge-py:base"  # per-problem image overrides this (meta.runtime.image)
 
+# Per-image resource + timeout envelope. The browser runtime needs a far larger profile
+# than the lightweight python/sql ones: chromium wants ~1g RAM, more pids, a writable HOME,
+# and several seconds just to launch + render before any assertion runs. `inner` is the
+# in-container `timeout` (kills runaway code); `outer` is the subprocess backstop if docker
+# itself hangs. Unknown images fall back to DEFAULT_PROFILE.
+DEFAULT_PROFILE = {"memory": "512m", "pids": 128, "inner": 5, "outer": 15, "env": {}}
+PROFILES = {
+    "judge-browser:base": {
+        "memory": "1g", "pids": 512, "inner": 25, "outer": 40,
+        "env": {"HOME": "/tmp"},  # chromium needs a writable home/cache as `nobody`
+    },
+}
+
 
 def run_in_container(workdir: Path, command: str, image: str = DEFAULT_IMAGE) -> str:
     """Run `command` inside a disposable, locked-down container over the workdir.
 
-    `image` is the problem's runtime (judge-py / judge-node / judge-sql / …). Security
-    flags are mandatory: no network, capped memory/pids, unprivileged user. Two timeouts:
-    inner `timeout 5` kills runaway code; outer subprocess timeout=15 is the backstop if
-    docker itself hangs.
+    `image` is the problem's runtime (judge-py / judge-browser / judge-sql / …). Security
+    flags are mandatory: no network, capped memory/pids, unprivileged user. The resource
+    + timeout envelope is per-image (see PROFILES) because the browser runtime needs a much
+    bigger one. Two timeouts: inner `timeout` kills runaway code; the outer subprocess
+    timeout is the backstop if docker itself hangs.
     """
+    image = image or DEFAULT_IMAGE
+    p = PROFILES.get(image, DEFAULT_PROFILE)
+    env_args = []
+    for k, v in p.get("env", {}).items():
+        env_args += ["-e", f"{k}={v}"]
     try:
         r = subprocess.run(
             [
                 "docker", "run", "--rm",
                 "--network", "none",
-                "--memory", "512m",
-                "--pids-limit", "128",
+                "--memory", p["memory"],
+                "--pids-limit", str(p["pids"]),
                 "--user", "nobody",
+                *env_args,
                 "-v", f"{workdir}:/work",
                 "-w", "/work",
-                image or DEFAULT_IMAGE,
-                "timeout", "5", "bash", "-c", command,
+                image,
+                "timeout", str(p["inner"]), "bash", "-c", command,
             ],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True, text=True, timeout=p["outer"],
         )
         out = r.stdout + r.stderr
     except subprocess.TimeoutExpired:
-        out = "[error] container timed out (15s wall limit)"
+        out = f"[error] container timed out ({p['outer']}s wall limit)"
     return out[:MAX_OUTPUT]
 
 

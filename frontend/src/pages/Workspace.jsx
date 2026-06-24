@@ -11,6 +11,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
 import ResultModal from '../components/ResultModal'
 import ConfirmModal from '../components/ConfirmModal'
+import PreviewPane from '../components/PreviewPane'
 import styles from '../styles/pages/Workspace.module.css'
 
 const TOOL_CLASS = {
@@ -291,6 +292,8 @@ export default function Workspace() {
 
   const starting = authed && (startMut.isPending || (!attemptId && !startMut.isError))
   const title = problem?.title ?? '문제'
+  // frontend problems swap the example-tests panel for a live render + console preview
+  const isFrontend = problem?.domain === 'frontend'
 
   // don't render the workspace chrome for guests (or during the auth check) — the effect
   // above redirects anonymous users and opens the login modal.
@@ -389,7 +392,7 @@ export default function Workspace() {
                 </div>
               )}
               {messages.map((m, i) => (
-                <Message key={i} msg={m} />
+                <Message key={i} msg={m} scrollRef={chatEndRef} />
               ))}
               {agentBusy && <TypingBubble />}
               {sendError && (
@@ -484,7 +487,10 @@ export default function Workspace() {
             aria-orientation="horizontal"
           />
 
-          {/* tests */}
+          {/* tests — or, for frontend problems, a live render + console preview */}
+          {isFrontend ? (
+            <PreviewPane files={files} height={testsH} />
+          ) : (
           <div className={styles.tests} style={{ height: testsH }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
@@ -553,6 +559,7 @@ export default function Workspace() {
               예제 테스트를 통과해도 정답이 보장되진 않아요. 제출은 가려진 테스트로 채점돼요.
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -617,7 +624,7 @@ function Meter({ label, value }) {
   )
 }
 
-function Message({ msg }) {
+function Message({ msg, scrollRef }) {
   if (msg.role === 'user') {
     return (
       <div className={`${styles.msg} ${styles.msgUser}`}>
@@ -627,7 +634,7 @@ function Message({ msg }) {
   }
   return (
     <div className={`${styles.msg} ${styles.msgAgent}`}>
-      {msg.text && <div className={styles.bubble}>{msg.text}</div>}
+      {msg.text && <AgentText text={msg.text} scrollRef={scrollRef} />}
       {msg.tools?.length > 0 && (
         <div className={styles.toolTags}>
           {msg.tools.map((t, i) => (
@@ -641,22 +648,35 @@ function Message({ msg }) {
   )
 }
 
+// Reveals the agent's text one chunk at a time so a completed message "types" in
+// rather than popping in whole. Resumes from the current progress on every effect run
+// (rather than locking after the first), so React StrictMode's double-invoke in dev
+// doesn't make the whole message snap in at once.
+function AgentText({ text, scrollRef }) {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    if (!text) return
+    let i = count
+    if (i >= text.length) return // already fully revealed — nothing to animate
+    // longer messages reveal several chars per tick so they finish in a bounded time
+    const step = Math.max(1, Math.round(text.length / 200))
+    const id = setInterval(() => {
+      i = Math.min(text.length, i + step)
+      setCount(i)
+      scrollRef?.current?.scrollIntoView({ block: 'end' })
+      if (i >= text.length) clearInterval(id)
+    }, 16)
+    return () => clearInterval(id)
+    // count is intentionally read once at mount, not a dep — the interval drives it forward
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, scrollRef])
+  return <div className={styles.bubble}>{text.slice(0, count)}</div>
+}
+
 function TypingBubble() {
   return (
     <div className={`${styles.msg} ${styles.msgAgent}`}>
-      <div className={styles.typing}>
-        <Dot c="var(--text-dim)" />
-        <Dot c="var(--text-faint)" />
-        <Dot c="var(--border)" />
-      </div>
+      <div className={`${styles.bubble} ${styles.thinking}`}>생각하는 중…</div>
     </div>
-  )
-}
-
-function Dot({ c }) {
-  return (
-    <span
-      style={{ width: 6, height: 6, borderRadius: '50%', background: c, display: 'inline-block' }}
-    />
   )
 }

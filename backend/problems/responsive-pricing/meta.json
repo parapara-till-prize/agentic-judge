@@ -1,0 +1,23 @@
+{
+  "id": 3010,
+  "title": "반응형 요금제 카드",
+  "runtime": {
+    "image": "judge-browser:base",
+    "test_cmd": "node tests/run_visible.js",
+    "grade_cmd": "node hidden/run_grade.js"
+  },
+  "difficulty": "mid",
+  "category": "반응형 레이아웃",
+  "domain": "frontend",
+  "skills": ["반응형", "Flexbox/Grid", "접근성"],
+  "ideal_turns": 4,
+  "ideal_tokens": 9000,
+  "scoring": {
+    "axes": [
+      { "key": "accuracy", "label": "정확도 · 렌더 검증", "weight": 0.7 },
+      { "key": "turn_efficiency", "label": "효율 · 턴", "weight": 0.18 },
+      { "key": "token_efficiency", "label": "효율 · 토큰", "weight": 0.12 }
+    ]
+  },
+  "trap_note": "naive fixed-px inline-block row with no media query passes the visible 'three cards render' check but fails hidden: no <768px stacking (responsive), unequal card widths, the featured card is not visually distinguished, and missing button text / heading semantics trip axe-core. A correct solution needs flex/grid + a media query + accessible markup."
+}
