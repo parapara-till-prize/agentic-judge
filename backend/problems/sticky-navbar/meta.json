@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "id": "sticky-navbar",
+  "id": 3002,
   "title": "반응형 스티키 네비게이션",
   "type": "frontend",
   "category": "반응형 레이아웃",
