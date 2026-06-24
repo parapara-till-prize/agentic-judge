@@ -1,23 +1,33 @@
 {
-  "id": 1156,
+  "schema_version": 2,
+  "id": "reorder-logs",
   "title": "로그 재정렬 API",
-  "runtime": {
-    "image": "judge-py:base",
-    "test_cmd": "python3 -m pytest tests -q",
-    "grade_cmd": "python3 run_grade.py"
-  },
-  "difficulty": "mid",
+  "type": "algorithm",
   "category": "API 구현",
-  "domain": "backend",
+  "difficulty": "mid",
   "skills": ["정렬", "파싱"],
-  "ideal_turns": 4,
-  "ideal_tokens": 8000,
-  "scoring": {
-    "axes": [
-      { "key": "accuracy", "label": "정확도", "weight": 0.65 },
-      { "key": "turn_efficiency", "label": "효율 · 턴", "weight": 0.2 },
-      { "key": "token_efficiency", "label": "효율 · 토큰", "weight": 0.15 }
+  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "open": {
+    "kind": "pytest-visible",
+    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  },
+  "hidden": {
+    "kind": "pytest-hidden",
+    "cases": [
+      { "id": "test_basic_ordering",                "weight": 1 },
+      { "id": "test_tie_break_by_identifier",       "weight": 2 },
+      { "id": "test_digit_logs_keep_original_order","weight": 2 },
+      { "id": "test_empty",                         "weight": 1 },
+      { "id": "test_all_digit_logs",                "weight": 1 }
     ]
   },
-  "trap_note": "naive sorted(logs) fails: must split id/content, sort letter-logs by content then identifier, keep digit-logs in original order and after all letter-logs. Hidden tests tie-break-by-identifier, digit stability, empty input, all-digits."
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.65 },
+      { "key": "turn_efficiency",  "weight": 0.20 },
+      { "key": "token_efficiency", "weight": 0.15 }
+    ]
+  },
+  "par": { "turns": 4, "tokens": 8000, "time_sec": 600 },
+  "trap_note": "naive sorted(logs) fails: must split id/content, sort letter-logs by (content, id), keep digit-logs in original order after all letter-logs."
 }
