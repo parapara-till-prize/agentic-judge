@@ -45,7 +45,7 @@
 }
 
 .done .stepNum {
-  background: #22c55e;
+  background: var(--accent-strong);
   color: #fff;
 }
 
@@ -74,7 +74,8 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 2rem;
   display: flex;
   flex-direction: column;
@@ -109,7 +110,7 @@
 .textarea {
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: var(--bg);
   color: var(--text);
   font-size: 0.875rem;
@@ -163,13 +164,15 @@
 .addBtn {
   padding: 0.6rem 1rem;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   font-size: 0.8rem;
   cursor: pointer;
   white-space: nowrap;
 }
+
+.addBtn:hover { background: var(--surface-2); }
 
 .skillChips {
   display: flex;
@@ -185,7 +188,8 @@
   padding: 0.25rem 0.6rem;
   background: var(--accent-soft-bg);
   color: var(--accent-strong);
-  border-radius: 20px;
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--radius);
   font-size: 0.78rem;
   font-weight: 500;
 }
@@ -204,9 +208,9 @@
 
 .suggestion {
   padding: 0.2rem 0.6rem;
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius);
   font-size: 0.78rem;
   cursor: pointer;
   color: var(--text-muted);
@@ -229,8 +233,8 @@
   padding: 0.65rem 1.5rem;
   background: var(--accent);
   color: #fff;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -240,21 +244,21 @@
 .primary:hover:not(:disabled) { background: var(--accent-strong); }
 
 .primary:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .secondary {
   padding: 0.65rem 1.2rem;
-  background: transparent;
-  color: var(--text);
+  background: var(--surface);
+  color: var(--text-h);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.875rem;
   cursor: pointer;
 }
 
-.secondary:hover { background: var(--bg); }
+.secondary:hover { background: var(--surface-2); }
 
 /* ── badges ──────────────────────────────────────────────────── */
 .secret {
@@ -262,8 +266,9 @@
   font-weight: 400;
   color: var(--danger);
   background: var(--danger-soft-bg);
+  border: 1px solid var(--danger-soft-border);
   padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+  border-radius: var(--radius);
   margin-left: 4px;
 }
 
@@ -271,7 +276,7 @@
 .genError {
   background: var(--danger-soft-bg);
   border: 1px solid var(--danger-soft-border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 1rem;
   font-size: 0.85rem;
   color: var(--danger);
@@ -301,7 +306,7 @@
 .loadingOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -312,7 +317,8 @@
 
 .loadingBox {
   background: var(--surface);
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
@@ -320,7 +326,7 @@
   gap: 1rem;
   min-width: 260px;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
 }
 
 .spinner {
@@ -380,33 +386,35 @@
 
 .editTag {
   font-size: 0.72rem;
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--accent-soft-bg);
+  color: var(--accent-strong);
+  border: 1px solid var(--accent-soft-border);
   padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 .readonlyTag {
   font-size: 0.72rem;
-  background: var(--bg);
+  background: var(--surface-2);
   color: var(--text-muted);
   padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
 }
 
 .hiddenTag {
   font-size: 0.72rem;
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warn-soft-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-soft-border);
   padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 .pre {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
   padding: 1rem;
   font-family: var(--mono);
   font-size: 0.78rem;
@@ -414,7 +422,7 @@
   white-space: pre;
   max-height: 360px;
   overflow-y: auto;
-  color: var(--text);
+  color: var(--text-h);
 }
 
 /* ── hidden cases ────────────────────────────────────────────── */
@@ -429,9 +437,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.4rem 0.75rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
   font-size: 0.82rem;
 }
 
@@ -446,9 +454,9 @@
   flex-direction: column;
   gap: 0.6rem;
   padding: 1rem;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
 }
 
 .summaryRow {
