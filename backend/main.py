@@ -476,15 +476,16 @@ def leaderboard(problem_id: str = None):
             q = q.where(Submission.problem_id == problem_id)
         subs = session.exec(q).all()
 
-    # best submission per user: most passed, then fewest turns
+    # best submission per user: highest score (0–1000, accuracy + efficiency), then fewest
+    # turns. score is comparable across problems, unlike raw weighted `passed`.
     best = {}
     for s in subs:
         cur = best.get(s.user)
-        if cur is None or (s.passed, -s.turns) > (cur.passed, -cur.turns):
+        if cur is None or (s.score, -s.turns) > (cur.score, -cur.turns):
             best[s.user] = s
 
-    ranked = sorted(best.values(), key=lambda s: (-s.passed, s.turns))
+    ranked = sorted(best.values(), key=lambda s: (-s.score, s.turns))
     return [
-        {"rank": i + 1, "user": s.user, "turns": s.turns, "passed": s.passed}
+        {"rank": i + 1, "user": s.user, "turns": s.turns, "score": s.score, "passed": s.passed}
         for i, s in enumerate(ranked)
     ]
