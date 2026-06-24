@@ -6,14 +6,14 @@
   "category": "반응형 레이아웃",
   "difficulty": "mid",
   "skills": ["반응형", "Flexbox", "position:sticky", "접근성", "JS토글"],
-  "submission": { "entry": "repo/index.html", "runtime": "judge-browser:base" },
+  "submission": { "entry": "index.html", "runtime": "judge-browser:base" },
   "open": {
     "kind": "browser-visible",
-    "cmd": "node repo/tests/run_visible.js"
+    "cmd": "node tests/run_visible.js"
   },
   "hidden": {
     "kind": "browser-scenarios",
-    "cmd": "node hidden/run_grade.js",
+    "cmd": "node run_grade.js",
     "cases": [
       { "id": "desktop_layout",    "weight": 1 },
       { "id": "sticky_header",     "weight": 1 },
