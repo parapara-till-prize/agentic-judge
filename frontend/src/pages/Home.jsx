@@ -19,9 +19,9 @@ const DIFFICULTY_OPTIONS = [
 ]
 
 const SORT_OPTIONS = [
+  { value: 'id-asc', label: '정렬: 번호순' },
   { value: 'rate-desc', label: '정렬: 성공률 높은순' },
   { value: 'rate-asc', label: '정렬: 성공률 낮은순' },
-  { value: 'id-asc', label: '정렬: 번호순' },
 ]
 
 export default function Home() {

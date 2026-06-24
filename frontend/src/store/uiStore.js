@@ -8,7 +8,7 @@ export const useUiStore = create((set) => ({
   difficulty: 'all',
   skills: [],
   unsolvedOnly: false,
-  sort: 'rate-desc',
+  sort: 'id-asc',
 
   setTrack: (track) => set({ track }),
   setQuery: (query) => set({ query }),
