@@ -19,7 +19,7 @@ export default function Navbar() {
     <nav className={styles.nav}>
       <div className={styles.left}>
         <NavLink to="/" className={styles.logo}>
-          agent<span>·</span>arena
+          agentic<span>·</span>judge
         </NavLink>
         <div className={styles.links}>
           <NavLink to="/problems">문제</NavLink>

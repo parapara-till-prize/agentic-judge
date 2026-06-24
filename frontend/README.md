@@ -1,4 +1,4 @@
-# Frontend — Agentic Coding Arena
+# Frontend — Agentic Judge
 
 Vite + React 19 + react-router. 4개 화면: ProblemList(홈) · Workspace · Result · Leaderboard.
 

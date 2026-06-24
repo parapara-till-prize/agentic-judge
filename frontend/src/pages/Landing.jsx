@@ -31,12 +31,12 @@ export default function Landing() {
         <div className="card card--flush">
           {/* hero */}
           <div className={styles.hero}>
-            <div className={styles.kicker}>AGENTIC&nbsp;CODING&nbsp;ARENA</div>
-            <h1 className={styles.title}>AI를 부려서 코드를 짜요.</h1>
+            <div className={styles.kicker}>AGENTIC&nbsp;JUDGE</div>
+            <h1 className={styles.title}>직접 지시하고, 검증해요.</h1>
             <p className={styles.sub}>
-              당신은 테크리드, AI는 주니어예요. 한 줄도 직접 타이핑하지 않고{' '}
-              <b>자연어 지시</b>만으로 문제를 통과시켜 보세요. 평가받는 건 코딩 실력이 아니라{' '}
-              <b>에이전트를 부리는 능력</b>이에요.
+              코딩은 에이전트가 해요. 당신은 <b>자연어로 지시</b>하고 결과를{' '}
+              <b>검증</b>해요. 평가받는 건 타이핑 속도가 아니라, 에이전트를 움직이는{' '}
+              <b>판단력</b>이에요.
             </p>
             <div className={styles.ctaRow}>
               <button

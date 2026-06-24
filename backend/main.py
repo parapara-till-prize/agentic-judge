@@ -38,7 +38,7 @@ PROBLEMS = BASE / "problems"
 ATTEMPTS = BASE / "attempts"
 ATTEMPTS.mkdir(exist_ok=True)
 
-app = FastAPI(title="Agentic Coding Arena")
+app = FastAPI(title="Agentic Judge")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
