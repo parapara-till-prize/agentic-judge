@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "id": "sticky-navbar",
+  "title": "반응형 스티키 네비게이션",
+  "type": "frontend",
+  "category": "반응형 레이아웃",
+  "difficulty": "mid",
+  "skills": ["반응형", "Flexbox", "position:sticky", "접근성", "JS토글"],
+  "submission": { "entry": "repo/index.html", "runtime": "judge-browser:base" },
+  "open": {
+    "kind": "browser-visible",
+    "cmd": "node repo/tests/run_visible.js"
+  },
+  "hidden": {
+    "kind": "browser-scenarios",
+    "cmd": "node hidden/run_grade.js",
+    "cases": [
+      { "id": "desktop_layout",    "weight": 1 },
+      { "id": "sticky_header",     "weight": 1 },
+      { "id": "hamburger_toggle",  "weight": 2 },
+      { "id": "accessibility",     "weight": 2 }
+    ]
+  },
+  "scoring": {
+    "axes": [
+      { "key": "accuracy",         "weight": 0.70 },
+      { "key": "turn_efficiency",  "weight": 0.18 },
+      { "key": "token_efficiency", "weight": 0.12 }
+    ]
+  },
+  "trap_note": "naive inline layout passes visible but fails hidden: no sticky positioning (sticky_header), no media query and js for toggle (hamburger_toggle), no nav landmark or aria-expanded (accessibility)."
+}
