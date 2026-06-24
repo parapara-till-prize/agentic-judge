@@ -1,0 +1,53 @@
+{
+  "schema_version": 2,
+  "id": 2208,
+  "title": "테이블 정의 문제",
+  "type": "sql",
+  "difficulty": "basic",
+  "skills": [
+    "DDL"
+  ],
+  "hidden": {
+    "cases": [
+      {
+        "id": "basic_scenario",
+        "weight": 1
+      },
+      {
+        "id": "non_existent_department_code",
+        "weight": 1
+      },
+      {
+        "id": "null_department_code",
+        "weight": 1
+      }
+    ],
+    "kind": "sql-scenarios",
+    "cmd": "python3 run_grade.py"
+  },
+  "scoring": {
+    "axes": [
+      {
+        "key": "accuracy",
+        "weight": 0.65
+      },
+      {
+        "key": "turn_efficiency",
+        "weight": 0.2
+      },
+      {
+        "key": "token_efficiency",
+        "weight": 0.15
+      }
+    ]
+  },
+  "category": "SQL 쿼리",
+  "submission": {
+    "entry": "solution.sql",
+    "runtime": "judge-sql:base"
+  },
+  "open": {
+    "kind": "sql-visible",
+    "cmd": "python3 run_tests.py"
+  }
+}

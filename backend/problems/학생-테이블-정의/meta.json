@@ -1,0 +1,57 @@
+{
+  "schema_version": 2,
+  "id": 2209,
+  "title": "학생 테이블 정의",
+  "type": "sql",
+  "difficulty": "basic",
+  "skills": [
+    "SELECT"
+  ],
+  "hidden": {
+    "cases": [
+      {
+        "id": "scenario_1_basic",
+        "weight": 1
+      },
+      {
+        "id": "scenario_2_more_students",
+        "weight": 1
+      },
+      {
+        "id": "scenario_3_empty_student_table",
+        "weight": 1
+      },
+      {
+        "id": "scenario_4_mixed_departments",
+        "weight": 1
+      }
+    ],
+    "kind": "sql-scenarios",
+    "cmd": "python3 run_grade.py"
+  },
+  "scoring": {
+    "axes": [
+      {
+        "key": "accuracy",
+        "weight": 0.65
+      },
+      {
+        "key": "turn_efficiency",
+        "weight": 0.2
+      },
+      {
+        "key": "token_efficiency",
+        "weight": 0.15
+      }
+    ]
+  },
+  "category": "SQL 쿼리",
+  "submission": {
+    "entry": "solution.sql",
+    "runtime": "judge-sql:base"
+  },
+  "open": {
+    "kind": "sql-visible",
+    "cmd": "python3 run_tests.py"
+  }
+}
