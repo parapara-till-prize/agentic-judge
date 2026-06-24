@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Close, Login as LoginIcon, UserFollow } from '@carbon/icons-react'
 import { useLogin, useRegister } from '../api/queries'
 import { useUiStore } from '../store/uiStore'
-import styles from './LoginModal.module.css'
+import styles from '../styles/components/LoginModal.module.css'
 
 // Global auth modal. Identity = session cookie; on success the /auth/me query is primed
 // by the mutation hooks, so the rest of the app reacts immediately.

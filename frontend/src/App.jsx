@@ -15,6 +15,7 @@ export default function App() {
         <Route path="/problems" element={<Home />} />
         <Route path="/problem/:id" element={<ProblemDetail />} />
         <Route path="/workspace/:id" element={<Workspace />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/leaderboard/:id" element={<Leaderboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

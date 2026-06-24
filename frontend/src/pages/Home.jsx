@@ -8,7 +8,7 @@ import { Badge, DomainTag, Chip, StatusDot } from '../components/ui'
 import { TRACKS } from '../data/constants'
 import { useProblems } from '../api/queries'
 import { useUiStore } from '../store/uiStore'
-import styles from './Home.module.css'
+import styles from '../styles/pages/Home.module.css'
 
 const DIFFICULTY_OPTIONS = [
   { value: 'all', label: '전체 난이도' },
@@ -68,11 +68,11 @@ export default function Home() {
         <div className="card card--flush">
           {/* hero */}
           <div className={styles.hero}>
-            <div className={styles.kicker}>AGENTIC&nbsp;CODING&nbsp;ARENA</div>
-            <div className={styles.title}>AI를 부려서 코드를 짜요.</div>
+            <div className={styles.kicker}>AGENTIC&nbsp;JUDGE</div>
+            <div className={styles.title}>직접 지시하고, 검증해요.</div>
             <div className={styles.sub}>
-              당신은 테크리드, AI는 주니어예요. 한 줄도 직접 타이핑하지 않고{' '}
-              <b>자연어 지시</b>만으로 문제를 통과시켜 보세요.
+              코딩은 에이전트가 해요. 당신은 <b>자연어로 지시</b>하고 결과를{' '}
+              <b>검증</b>해요.
             </div>
           </div>
 

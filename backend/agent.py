@@ -9,75 +9,23 @@ client is OpenAI-compatible so a local Ollama and a hosted API are a one-line en
 import json
 import os
 import uuid
+from pathlib import Path
 
 from openai import OpenAI
 
 import sandbox
 
-TOOL_NAMES = {"list_files", "read_file", "write_file", "run_command"}
+# --- prompts & tool schemas (data, not code; edit the files under prompts/) ------------
+PROMPTS = Path(__file__).parent / "prompts"
+SYSTEM_PROMPT = (PROMPTS / "system.md").read_text().strip()
+TEST_INSTRUCTIONS = (PROMPTS / "test_instructions.md").read_text().strip()
+TOOLS = json.loads((PROMPTS / "tools.json").read_text())
+TOOL_NAMES = {t["function"]["name"] for t in TOOLS}
 
 # --- model config (env; OpenAI-compatible so Ollama <-> hosted is a one-liner) ---------
 BASE_URL = os.environ.get("OPENAI_BASE_URL", "http://localhost:11434/v1")
 API_KEY = os.environ.get("OPENAI_API_KEY", "ollama")  # Ollama ignores the key
 MODEL = os.environ.get("OPENAI_MODEL", "qwen2.5-coder:7b")
-
-SYSTEM_PROMPT = (
-    "You are a junior software developer. The user is your tech lead and cannot write "
-    "code directly — they only instruct, review and correct you in natural language. "
-    "Use the tools to inspect and edit files in the workspace and to run commands/tests. "
-    "Always write code via the write_file tool; never just paste code in chat. Verify your "
-    "work by running the visible tests before reporting back. Keep replies short."
-)
-
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "list_files",
-            "description": "List all files in the workspace.",
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_file",
-            "description": "Read a file's contents.",
-            "parameters": {
-                "type": "object",
-                "properties": {"path": {"type": "string"}},
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "write_file",
-            "description": "Create or overwrite a file with the given content.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string"},
-                    "content": {"type": "string"},
-                },
-                "required": ["path", "content"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "run_command",
-            "description": "Run a shell command in the sandboxed container (e.g. pytest).",
-            "parameters": {
-                "type": "object",
-                "properties": {"command": {"type": "string"}},
-                "required": ["command"],
-            },
-        },
-    },
-]
 
 MAX_STEPS = 24  # hard cap on tool round-trips per turn, guards against loops
 
@@ -154,11 +102,7 @@ def _tool_label(name: str, args: dict) -> str:
 def _system_prompt(test_cmd: str = None) -> str:
     """Base prompt + the problem's visible-test command so the agent doesn't guess it."""
     if test_cmd:
-        return (
-            SYSTEM_PROMPT
-            + f"\n\nRun the visible tests with exactly: `{test_cmd}`. "
-            "Do not modify files under tests/ — only the solution files."
-        )
+        return SYSTEM_PROMPT + "\n\n" + TEST_INSTRUCTIONS.format(test_cmd=test_cmd)
     return SYSTEM_PROMPT
 
 

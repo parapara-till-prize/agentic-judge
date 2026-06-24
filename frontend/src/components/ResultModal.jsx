@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Close } from '@carbon/icons-react'
 import { useProblem } from '../api/queries'
 import { useSessionStore } from '../store/sessionStore'
-import styles from '../pages/Result.module.css'
+import styles from '../styles/pages/Result.module.css'
 
 const MAX_SCORE = 1000
 

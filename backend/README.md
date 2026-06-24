@@ -1,4 +1,4 @@
-# Backend — Agentic Coding Arena
+# Backend — Agentic Judge
 
 FastAPI + SQLModel + SQLite. 에이전트 루프 + 샌드박스 채점.
 

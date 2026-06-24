@@ -6,6 +6,12 @@
 .lbHeader {
   padding: 22px 26px 0;
 }
+.lbHeadTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
 .lbTitle {
   font-size: 20px;
   font-weight: 800;
@@ -67,50 +73,6 @@
   font-size: 13px;
   color: var(--text-h);
   text-align: right;
-}
-
-/* scoring module explainer */
-.explainer {
-  padding: 22px;
-}
-.explainerTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-h);
-}
-.explainerSub {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  margin-top: 5px;
-  line-height: 1.6;
-}
-.presets {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-}
-.preset {
-  border: 1px solid var(--border-soft);
-  border-radius: 6px;
-  padding: 12px 14px;
-}
-.axes {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.axis {
-  font-size: 11.5px;
-  color: var(--text-h);
-  background: var(--surface-2);
-  border: 1px solid var(--border-soft);
-  border-radius: 4px;
-  padding: 3px 8px;
-}
-.axisPrimary {
-  background: var(--accent-soft-bg);
-  border-color: var(--accent-soft-border);
 }
 
 .state {

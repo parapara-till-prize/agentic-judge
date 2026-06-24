@@ -8,7 +8,7 @@ import {
 } from '@carbon/icons-react'
 import { useMe, useLogout } from '../api/queries'
 import { useUiStore } from '../store/uiStore'
-import styles from './Navbar.module.css'
+import styles from '../styles/components/Navbar.module.css'
 
 export default function Navbar() {
   const { data: me } = useMe()
@@ -19,11 +19,11 @@ export default function Navbar() {
     <nav className={styles.nav}>
       <div className={styles.left}>
         <NavLink to="/" className={styles.logo}>
-          agent<span>·</span>arena
+          agentic<span>·</span>judge
         </NavLink>
         <div className={styles.links}>
           <NavLink to="/problems">문제</NavLink>
-          <NavLink to="/leaderboard/1024">리더보드</NavLink>
+          <NavLink to="/leaderboard">리더보드</NavLink>
         </div>
       </div>
       <div className={styles.right}>

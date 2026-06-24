@@ -10,7 +10,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
 import ResultModal from '../components/ResultModal'
 import ConfirmModal from '../components/ConfirmModal'
-import styles from './Workspace.module.css'
+import styles from '../styles/pages/Workspace.module.css'
 
 const TOOL_CLASS = {
   write: styles.ttWrite,
@@ -337,12 +337,11 @@ export default function Workspace() {
         {/* CENTER: agent chat */}
         <div className={styles.pane}>
           <div className={styles.paneHead}>
-            <span className={styles.dot} />
+            <span
+              className={`${styles.dot} ${agentBusy ? styles.dotBusy : ''}`}
+              title={agentBusy ? '작업 중' : '대기 중'}
+            />
             <span className={styles.agentName}>에이전트</span>
-            <span className={`mono ${styles.agentMeta}`}>junior-dev</span>
-            <span className={styles.agentMeta} style={{ marginLeft: 'auto' }}>
-              컨텍스트 보존됨
-            </span>
           </div>
 
           <div className={styles.scroll}>
@@ -378,7 +377,7 @@ export default function Workspace() {
                 rows={2}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                disabled={!attemptId || agentBusy}
+                disabled={!attemptId}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -387,19 +386,13 @@ export default function Workspace() {
                 }}
                 placeholder="에이전트에게 지시… (코드 직접 작성 불가)"
               />
-              <div className={styles.chatBar}>
-                <div className={styles.chatMini}>
-                  <button className={styles.miniTag}>@파일 첨부</button>
-                  <button className={styles.miniTag}>/되돌리기</button>
-                </div>
-                <button
-                  className="btn btn--dark"
-                  onClick={send}
-                  disabled={!attemptId || agentBusy}
-                >
-                  전송 ↵
-                </button>
-              </div>
+              <button
+                className="btn btn--dark"
+                onClick={send}
+                disabled={!attemptId || agentBusy}
+              >
+                전송 ↵
+              </button>
             </div>
             <div className={styles.chatLock}>
               코드 편집은 잠겨 있어요. 변경은 에이전트를 통해서만 가능해요.

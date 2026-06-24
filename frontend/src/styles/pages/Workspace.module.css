@@ -109,14 +109,22 @@
   border-radius: 50%;
   background: var(--accent);
 }
+.dotBusy {
+  background: var(--warn);
+  animation: dotPulse 1s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
 .agentName {
   color: var(--text-h);
   font-size: 12.5px;
-}
-.agentMeta {
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
 }
 .scroll {
   overflow-y: auto;
@@ -238,7 +246,7 @@
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
 }
 .chatBox textarea {
@@ -249,28 +257,14 @@
   font-family: var(--sans);
   font-size: 13px;
   color: var(--text-h);
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 .chatBox textarea::placeholder {
   color: var(--text-faint);
 }
-.chatBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.chatMini {
-  display: flex;
-  gap: 6px;
-}
-.miniTag {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  color: var(--text-dim);
-  border: 1px solid var(--border-soft);
-  border-radius: 3px;
-  padding: 2px 7px;
-  background: transparent;
+.chatBox > button {
+  flex-shrink: 0;
 }
 .chatLock {
   font-size: 10.5px;
@@ -286,6 +280,20 @@
   color: var(--text);
   padding: 8px 16px;
   line-height: 1.9;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+/* horizontal splitter between the right pane's stacked sections */
+.vresizer {
+  height: 6px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: var(--border);
+  transition: background 0.12s;
+}
+.vresizer:hover,
+.vresizer:active {
+  background: var(--accent);
 }
 .ftRoot {
   display: flex;
@@ -322,7 +330,6 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border-soft);
   min-height: 0;
 }
 .codeBar {
@@ -354,8 +361,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-top: 1px solid var(--border-soft);
   flex-shrink: 0;
+  overflow-y: auto;
 }
 .testRow {
   display: flex;
@@ -424,7 +431,8 @@
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  .resizer {
+  .resizer,
+  .vresizer {
     display: none;
   }
 }

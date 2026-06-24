@@ -3,7 +3,7 @@
 // selectors scoped under .md). Statements are author-trusted; no raw HTML is enabled.
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import styles from './Markdown.module.css'
+import styles from '../styles/components/Markdown.module.css'
 
 export default function Markdown({ source = '' }) {
   return (

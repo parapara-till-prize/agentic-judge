@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Select from '../components/Select'
 import { useProblem, useProblems, useLeaderboard } from '../api/queries'
-import styles from './Leaderboard.module.css'
+import styles from '../styles/pages/Leaderboard.module.css'
 
 const AVATAR_COLORS = ['#16a34a', '#2563eb', '#7c3aed', '#0891b2', '#d97706', '#db2777']
 

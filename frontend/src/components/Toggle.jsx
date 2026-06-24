@@ -1,5 +1,5 @@
 import * as RToggle from '@radix-ui/react-toggle'
-import styles from './Toggle.module.css'
+import styles from '../styles/components/Toggle.module.css'
 
 // Styled on/off toggle built on Radix Toggle.
 export default function Toggle({ pressed, onPressedChange, children }) {
