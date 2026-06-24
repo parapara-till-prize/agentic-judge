@@ -4,11 +4,15 @@ Attempt is the per-run record: its `history` JSON column is the agent's full Ope
 message list, restored on each /messages call and saved back. Submission is one graded
 result, used for the leaderboard and solved-rate.
 """
+from pathlib import Path
 from typing import Optional
 
 from sqlmodel import JSON, Column, Field, SQLModel, create_engine
 
-DB_URL = "sqlite:///arena.db"
+# Absolute path so the DB is always backend/arena.db regardless of the process cwd
+# (a relative "sqlite:///arena.db" would resolve against wherever uvicorn was launched).
+DB_PATH = Path(__file__).parent / "arena.db"
+DB_URL = f"sqlite:///{DB_PATH}"
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
 
 

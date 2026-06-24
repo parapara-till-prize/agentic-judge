@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Folder, Document, CheckmarkFilled, ErrorFilled } from '@carbon/icons-react'
 import { Badge } from '../components/ui'
 import Markdown from '../components/Markdown'
-import { useProblem, useStartAttempt, usePostMessage, useSubmit, useMe } from '../api/queries'
+import { useProblem, useStartAttempt, useSubmit, useMe } from '../api/queries'
+import { streamMessage } from '../api/stream'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
 import ResultModal from '../components/ResultModal'
@@ -16,6 +18,21 @@ const TOOL_CLASS = {
 
 const fmtTokens = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n ?? 0))
 
+// fold the flat [{path}] list into a nested {dirs, files} tree for the right pane
+function buildTree(files) {
+  const root = {}
+  for (const f of files) {
+    const parts = f.path.split('/')
+    let node = root
+    parts.forEach((part, i) => {
+      const isFile = i === parts.length - 1
+      node[part] = node[part] || (isFile ? { __file: f.path } : {})
+      if (!isFile) node = node[part]
+    })
+  }
+  return root
+}
+
 export default function Workspace() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -25,14 +42,17 @@ export default function Workspace() {
   const openLogin = useUiStore((s) => s.openLogin)
   const {
     attemptId, problemId, statement, files, messages, turns, tokens,
-    startSession, pushUserMessage, applyAgentResult, setSubmitResult,
+    testResult, agentBusy,
+    startSession, pushUserMessage, setSubmitResult,
+    streamToolCall, streamAgentText, streamFiles, streamTestResult,
+    finishTurn, endTurnError,
   } = useSessionStore()
 
   const startMut = useStartAttempt()
-  const postMut = usePostMessage(attemptId)
   const submitMut = useSubmit(attemptId)
 
   const [draft, setDraft] = useState('')
+  const [sendError, setSendError] = useState(null)
   const [selectedPath, setSelectedPath] = useState(null)
   const [resultOpen, setResultOpen] = useState(false)
   const chatEndRef = useRef(null)
@@ -64,7 +84,7 @@ export default function Workspace() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, postMut.isPending])
+  }, [messages, agentBusy])
 
   // elapsed timer
   const [startedAt] = useState(Date.now())
@@ -85,13 +105,45 @@ export default function Workspace() {
     return (files.find((f) => f.path.includes('solution')) ?? files[0])?.path ?? null
   }, [selectedPath, files])
   const activeFile = files.find((f) => f.path === activePath)
+  const fileTree = useMemo(() => buildTree(files), [files])
 
-  function send() {
+  async function send() {
     const text = draft.trim()
-    if (!text || !attemptId || postMut.isPending) return
+    if (!text || !attemptId || agentBusy) return
     setDraft('')
+    setSendError(null)
     pushUserMessage(text)
-    postMut.mutate(text, { onSuccess: (d) => applyAgentResult(d) })
+    try {
+      await streamMessage(attemptId, text, {
+        onEvent: (ev) => {
+          switch (ev.type) {
+            case 'agent':
+              streamAgentText(ev)
+              break
+            case 'tool_call':
+              streamToolCall(ev)
+              break
+            case 'tool_result':
+              if (ev.name === 'run_command') streamTestResult(ev)
+              break
+            case 'file_written':
+              setSelectedPath(ev.path) // jump the viewer to the file just edited
+              break
+            case 'files':
+              streamFiles(ev.files)
+              break
+            case 'done':
+              finishTurn(ev)
+              break
+            default:
+              break
+          }
+        },
+      })
+    } catch (e) {
+      endTurnError()
+      setSendError(e.message)
+    }
   }
 
   function submit() {
@@ -196,7 +248,7 @@ export default function Workspace() {
                   세션 시작 실패: {startMut.error?.message}
                 </div>
               )}
-              {!starting && messages.length === 0 && (
+              {authed && !starting && messages.length === 0 && (
                 <div className={styles.sysNote}>
                   에이전트에게 첫 지시를 내려보세요. (예: “solution.py를 구현해줘”)
                 </div>
@@ -204,9 +256,9 @@ export default function Workspace() {
               {messages.map((m, i) => (
                 <Message key={i} msg={m} />
               ))}
-              {postMut.isPending && <TypingBubble />}
-              {postMut.isError && (
-                <div className={styles.sysNote}>전송 실패: {postMut.error?.message}</div>
+              {agentBusy && <TypingBubble />}
+              {sendError && (
+                <div className={styles.sysNote}>전송 실패: {sendError}</div>
               )}
               <div ref={chatEndRef} />
             </div>
@@ -219,7 +271,7 @@ export default function Workspace() {
                 rows={2}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                disabled={!attemptId}
+                disabled={!attemptId || agentBusy}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -236,7 +288,7 @@ export default function Workspace() {
                 <button
                   className="btn btn--dark"
                   onClick={send}
-                  disabled={!attemptId || postMut.isPending}
+                  disabled={!attemptId || agentBusy}
                 >
                   전송 ↵
                 </button>
@@ -255,17 +307,15 @@ export default function Workspace() {
             <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>🔒 읽기 전용</span>
           </div>
           <div className={styles.filetree}>
-            <div>📁 /workspace</div>
-            {files.map((f) => (
-              <div
-                key={f.path}
-                className={f.path === activePath ? styles.ftActive : styles.ftItem}
-                style={{ cursor: 'pointer' }}
-                onClick={() => setSelectedPath(f.path)}
-              >
-                📄 {f.path}
-              </div>
-            ))}
+            <div className={styles.ftRoot}>
+              <Folder size={14} /> workspace
+            </div>
+            <FileTree
+              tree={fileTree}
+              depth={1}
+              activePath={activePath}
+              onSelect={setSelectedPath}
+            />
             {files.length === 0 && <div className={styles.ftItem}>— 비어 있음 —</div>}
           </div>
 
@@ -294,10 +344,42 @@ export default function Workspace() {
                   예제 테스트
                 </span>
                 <span className={styles.tagPub}>공개</span>
+                {testResult?.ran && (
+                  <span
+                    className="mono"
+                    style={{
+                      marginLeft: 'auto',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: testResult.ok ? 'var(--accent)' : 'var(--danger)',
+                    }}
+                  >
+                    {testResult.passed} / {testResult.total}
+                  </span>
+                )}
               </div>
-              <div className={styles.testRow} style={{ color: 'var(--text-dim)' }}>
-                에이전트가 <span className="mono">run_command</span>로 직접 실행합니다.
-              </div>
+              {testResult?.ran ? (
+                <div className={styles.testResult}>
+                  <div className={styles.testSummary}>
+                    {testResult.ok ? (
+                      <CheckmarkFilled size={16} style={{ color: 'var(--accent)' }} />
+                    ) : (
+                      <ErrorFilled size={16} style={{ color: 'var(--danger)' }} />
+                    )}
+                    <span>
+                      {testResult.ok
+                        ? `${testResult.passed}개 전부 통과`
+                        : `${testResult.failed}개 실패 · ${testResult.passed}개 통과`}
+                    </span>
+                  </div>
+                  <pre className={styles.testOutput}>{testResult.raw.trim()}</pre>
+                </div>
+              ) : (
+                <div className={styles.testRow} style={{ color: 'var(--text-dim)' }}>
+                  에이전트가 <span className="mono">run_command</span>로 예제 테스트를 실행하면
+                  결과가 여기 실시간으로 표시됩니다.
+                </div>
+              )}
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 10 }}>
@@ -321,6 +403,40 @@ export default function Workspace() {
       <ResultModal open={resultOpen} onOpenChange={setResultOpen} problemId={id} />
     </div>
   )
+}
+
+// Recursive nested tree: folders (sorted first) then files, indented by depth.
+function FileTree({ tree, depth, activePath, onSelect }) {
+  const entries = Object.entries(tree).sort(([an, av], [bn, bv]) => {
+    const aFile = Boolean(av.__file)
+    const bFile = Boolean(bv.__file)
+    if (aFile !== bFile) return aFile ? 1 : -1 // dirs first
+    return an.localeCompare(bn)
+  })
+  return entries.map(([name, node]) => {
+    const pad = { paddingLeft: 10 + depth * 14 }
+    if (node.__file) {
+      const active = node.__file === activePath
+      return (
+        <div
+          key={node.__file}
+          className={active ? styles.ftActive : styles.ftItem}
+          style={{ ...pad, cursor: 'pointer' }}
+          onClick={() => onSelect(node.__file)}
+        >
+          <Document size={14} /> {name}
+        </div>
+      )
+    }
+    return (
+      <div key={name}>
+        <div className={styles.ftDir} style={pad}>
+          <Folder size={14} /> {name}
+        </div>
+        <FileTree tree={node} depth={depth + 1} activePath={activePath} onSelect={onSelect} />
+      </div>
+    )
+  })
 }
 
 function Meter({ label, value }) {

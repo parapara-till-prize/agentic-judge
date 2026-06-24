@@ -23,6 +23,7 @@ if _envf.exists():
 
 from fastapi import Depends, FastAPI, HTTPException, Response  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import StreamingResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from sqlmodel import Session, select  # noqa: E402
 
@@ -106,16 +107,13 @@ def me(user: str = Depends(auth.get_current_user)):
 
 
 # --- helpers ----------------------------------------------------------------
-def _meta(slug: str) -> dict:
-    return json.loads((PROBLEMS / slug / "meta.json").read_text())
-
-
 def _workspace_files(attempt_id: str) -> list:
     """Return [{path, content}] for text files in the workdir (for the read-only viewer)."""
     wd = ATTEMPTS / attempt_id
     out = []
+    _skip = {"__pycache__", ".pytest_cache"}
     for p in sorted(wd.rglob("*")):
-        if not p.is_file() or "__pycache__" in p.parts:
+        if not p.is_file() or _skip & set(p.parts):
             continue
         try:
             content = p.read_text()[:MAX_OUTPUT]
@@ -142,10 +140,34 @@ def _problem_stats(problem_id: str, session: Session) -> dict:
 
 
 # --- routes -----------------------------------------------------------------
-def _problem_card(slug: str, m: dict, session: Session) -> dict:
-    stats = _problem_stats(slug, session)
+# Public problem IDs are numbers (meta.json "id"); the slug stays the on-disk folder name.
+# `problem_id` stored on attempts/submissions is the numeric id (as a string).
+def _index() -> dict:
+    """Map public numeric id (as str) -> (slug, meta). Scans the problems dir."""
+    idx = {}
+    for d in sorted(PROBLEMS.iterdir()):
+        mf = d / "meta.json"
+        if not mf.exists():
+            continue
+        m = json.loads(mf.read_text())
+        if "id" in m:
+            idx[str(m["id"])] = (d.name, m)
+    return idx
+
+
+def _resolve(problem_id: str) -> tuple:
+    """(slug, meta) for a public numeric id, or 404."""
+    hit = _index().get(str(problem_id))
+    if not hit:
+        raise HTTPException(404, f"unknown problem: {problem_id}")
+    return hit
+
+
+def _problem_card(pid: str, slug: str, m: dict, session: Session) -> dict:
+    stats = _problem_stats(pid, session)  # submissions are keyed by the public id
     return {
-        "id": slug,
+        "id": m["id"],
+        "slug": slug,
         "title": m.get("title", slug),
         "difficulty": m.get("difficulty", "basic"),
         "category": m.get("category", ""),
@@ -159,37 +181,34 @@ def _problem_card(slug: str, m: dict, session: Session) -> dict:
 def list_problems():
     out = []
     with Session(engine) as session:
-        for d in sorted(PROBLEMS.iterdir()):
-            if not (d / "meta.json").exists():
-                continue
-            out.append(_problem_card(d.name, _meta(d.name), session))
+        for pid, (slug, m) in sorted(_index().items(), key=lambda kv: int(kv[0])):
+            out.append(_problem_card(pid, slug, m, session))
     return out
 
 
 @app.get("/problems/{problem_id}")
 def get_problem(problem_id: str):
-    d = PROBLEMS / problem_id
-    if not (d / "meta.json").exists():
-        raise HTTPException(404, f"unknown problem: {problem_id}")
+    slug, m = _resolve(problem_id)
     with Session(engine) as session:
-        card = _problem_card(problem_id, _meta(problem_id), session)
-    statement_file = d / "statement.md"
+        card = _problem_card(str(m["id"]), slug, m, session)
+    statement_file = PROBLEMS / slug / "statement.md"
     card["statement"] = statement_file.read_text() if statement_file.exists() else ""
     return card
 
 
 @app.post("/attempts")
 def start_attempt(body: StartAttempt, user: str = Depends(auth.get_current_user)):
-    src = PROBLEMS / body.problem_id / "repo"
+    slug, m = _resolve(body.problem_id)
+    src = PROBLEMS / slug / "repo"
     if not src.exists():
         raise HTTPException(404, f"unknown problem: {body.problem_id}")
 
     attempt_id = uuid.uuid4().hex
     shutil.copytree(src, ATTEMPTS / attempt_id)
-    statement = (PROBLEMS / body.problem_id / "statement.md").read_text()
+    statement = (PROBLEMS / slug / "statement.md").read_text()
 
     with Session(engine) as session:
-        session.add(Attempt(id=attempt_id, problem_id=body.problem_id, user=user))
+        session.add(Attempt(id=attempt_id, problem_id=str(m["id"]), user=user))
         session.commit()
 
     return {
@@ -199,28 +218,58 @@ def start_attempt(body: StartAttempt, user: str = Depends(auth.get_current_user)
     }
 
 
+def _sse(obj: dict) -> str:
+    return f"data: {json.dumps(obj, ensure_ascii=False)}\n\n"
+
+
 @app.post("/attempts/{attempt_id}/messages")
 def post_message(attempt_id: str, body: Message):
+    """Run one agent turn, streaming events as Server-Sent Events.
+
+    The whole loop still runs server-side, but the client sees each tool call, file
+    change and test run as it happens. History/turns/tokens are persisted once the turn
+    finishes, then a final `done` event carries the authoritative counters + file snapshot.
+    """
     with Session(engine) as session:
         attempt = session.get(Attempt, attempt_id)
         if not attempt:
             raise HTTPException(404, "unknown attempt")
+        history = list(attempt.history)
 
-        result = agent.run_agent(attempt_id, list(attempt.history), body.text)
+    def gen():
+        final = None
+        for ev in agent.stream_turn(attempt_id, history, body.text):
+            if ev["type"] == "done":
+                final = ev
+                break
+            yield _sse(ev)
+            # after a file write, push the fresh snapshot so the viewer updates live
+            if ev["type"] == "file_written":
+                yield _sse({"type": "files", "files": _workspace_files(attempt_id)})
 
-        attempt.history = result["history"]  # reassign so SQLAlchemy flags the JSON dirty
-        attempt.turns += 1
-        attempt.tokens += result["tokens"]
-        session.add(attempt)
-        session.commit()
-        turns, tokens = attempt.turns, attempt.tokens
+        with Session(engine) as session:
+            attempt = session.get(Attempt, attempt_id)
+            attempt.history = final["history"]  # reassign so SQLAlchemy flags JSON dirty
+            attempt.turns += 1
+            attempt.tokens += final["tokens"]
+            session.add(attempt)
+            session.commit()
+            turns, tokens = attempt.turns, attempt.tokens
 
-    return {
-        "events": result["events"],
-        "turns": turns,
-        "tokens": tokens,
-        "files": _workspace_files(attempt_id),
-    }
+        yield _sse(
+            {
+                "type": "done",
+                "turns": turns,
+                "tokens": tokens,
+                "files": _workspace_files(attempt_id),
+            }
+        )
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/attempts/{attempt_id}/submit")
@@ -230,10 +279,11 @@ def submit(attempt_id: str):
         if not attempt:
             raise HTTPException(404, "unknown attempt")
 
-        result = grade.run_hidden_tests(attempt_id, attempt.problem_id)
+        slug, meta = _resolve(attempt.problem_id)
+        result = grade.run_hidden_tests(attempt_id, slug)
         passed, total = result["passed"], result["total"]
         scored = scoring.evaluate(
-            _meta(attempt.problem_id), passed, total, attempt.turns, attempt.tokens
+            meta, passed, total, attempt.turns, attempt.tokens
         )
         points = scored["score"]
 

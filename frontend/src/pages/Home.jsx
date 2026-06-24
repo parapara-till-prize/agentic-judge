@@ -51,13 +51,13 @@ export default function Home() {
       if (difficulty !== 'all' && p.difficulty !== difficulty) return false
       if (skills.length && !skills.every((s) => p.skills.includes(s))) return false
       if (unsolvedOnly && p.solved) return false
-      if (query && !p.title.includes(query) && !p.id.includes(query)) return false
+      if (query && !p.title.includes(query) && !String(p.id).includes(query)) return false
       return true
     })
     const sorted = [...filtered]
     if (sort === 'rate-desc') sorted.sort((a, b) => b.rate - a.rate)
     else if (sort === 'rate-asc') sorted.sort((a, b) => a.rate - b.rate)
-    else if (sort === 'id-asc') sorted.sort((a, b) => a.id.localeCompare(b.id))
+    else if (sort === 'id-asc') sorted.sort((a, b) => a.id - b.id)
     return sorted
   }, [problems, track, query, difficulty, skills, unsolvedOnly, sort])
 

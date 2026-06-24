@@ -83,38 +83,39 @@ def get_client() -> OpenAI:
     return OpenAI(base_url=BASE_URL, api_key=API_KEY)
 
 
-def _tool_chip(name: str, args: dict) -> dict:
-    """Compact event the frontend renders as a tool-call chip."""
+def _tool_label(name: str, args: dict) -> str:
+    """Compact label the frontend renders on a tool-call chip."""
     if name == "read_file":
-        label = f"read_file · {args.get('path', '')}"
-    elif name == "write_file":
-        label = f"write_file · {args.get('path', '')}"
-    elif name == "run_command":
-        label = f"run_command · {args.get('command', '')[:40]}"
-    else:
-        label = name
-    return {"type": "tool", "name": name, "label": label}
+        return f"read_file · {args.get('path', '')}"
+    if name == "write_file":
+        return f"write_file · {args.get('path', '')}"
+    if name == "run_command":
+        return f"run_command · {args.get('command', '')[:40]}"
+    return name
 
 
-def run_agent(attempt_id: str, history: list, user_text: str, client: OpenAI = None) -> dict:
-    """Run one full turn. Returns {events, history, tokens}.
+def stream_turn(attempt_id: str, history: list, user_text: str, client: OpenAI = None):
+    """Run one full turn as a generator, yielding events as they happen.
 
-    `history` is the OpenAI message list (persisted in the attempt row between turns).
-    On first call, prepend the system prompt. `client` is injectable for testing.
+    Event types (dicts):
+      {"type":"agent","text":...}                          assistant message text
+      {"type":"tool_call","name":...,"label":...}          a tool is about to run
+      {"type":"tool_result","name":"run_command",
+        "command":...,"output":...}                        run_command stdout/stderr
+      {"type":"file_written","path":...}                   write_file landed on disk
+      {"type":"done","tokens":N,"history":[...]}           terminal: turn finished
+
+    `history` is the persisted OpenAI message list; a fresh local copy is built so the
+    terminal event can hand the updated list back to the caller. `client` is injectable.
     """
     client = client or get_client()
 
-    if not history:
-        history = [{"role": "system", "content": SYSTEM_PROMPT}]
-    history.append({"role": "user", "content": user_text})
+    messages = list(history) if history else [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.append({"role": "user", "content": user_text})
 
-    events = []
     tokens = 0
-
     for _ in range(MAX_STEPS):
-        resp = client.chat.completions.create(
-            model=MODEL, messages=history, tools=TOOLS,
-        )
+        resp = client.chat.completions.create(model=MODEL, messages=messages, tools=TOOLS)
         if getattr(resp, "usage", None):
             tokens += resp.usage.total_tokens or 0
 
@@ -122,7 +123,7 @@ def run_agent(attempt_id: str, history: list, user_text: str, client: OpenAI = N
         tool_calls = msg.tool_calls or []
 
         # Record the assistant message exactly as returned (so tool_calls round-trip).
-        history.append(
+        messages.append(
             {
                 "role": "assistant",
                 "content": msg.content or "",
@@ -138,20 +139,48 @@ def run_agent(attempt_id: str, history: list, user_text: str, client: OpenAI = N
             }
         )
         if msg.content:
-            events.append({"role": "agent", "text": msg.content})
+            yield {"type": "agent", "text": msg.content}
 
         if not tool_calls:
-            break  # no tools -> turn is done, return to user
+            break  # no tools -> turn is done
 
         for tc in tool_calls:
+            name = tc.function.name
             try:
                 args = json.loads(tc.function.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}
-            events.append(_tool_chip(tc.function.name, args))
-            result = sandbox.run_tool(attempt_id, tc.function.name, args)
-            history.append(
-                {"role": "tool", "tool_call_id": tc.id, "content": result}
-            )
+            yield {"type": "tool_call", "name": name, "label": _tool_label(name, args)}
 
-    return {"events": events, "history": history, "tokens": tokens}
+            result = sandbox.run_tool(attempt_id, name, args)
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+
+            if name == "run_command":
+                yield {
+                    "type": "tool_result",
+                    "name": name,
+                    "command": args.get("command", ""),
+                    "output": result,
+                }
+            elif name == "write_file" and args.get("path"):
+                yield {"type": "file_written", "path": args["path"]}
+
+    yield {"type": "done", "tokens": tokens, "history": messages}
+
+
+def run_agent(attempt_id: str, history: list, user_text: str, client: OpenAI = None) -> dict:
+    """Non-streaming wrapper: drains stream_turn into {events, history, tokens}.
+
+    Kept for tests and any non-SSE caller. Folds the rich stream into the compact
+    chip/text event list the older consumers expect.
+    """
+    events = []
+    final = None
+    for ev in stream_turn(attempt_id, history, user_text, client):
+        if ev["type"] == "done":
+            final = ev
+        elif ev["type"] == "agent":
+            events.append({"role": "agent", "text": ev["text"]})
+        elif ev["type"] == "tool_call":
+            events.append({"type": "tool", "name": ev["name"], "label": ev["label"]})
+    return {"events": events, "history": final["history"], "tokens": final["tokens"]}

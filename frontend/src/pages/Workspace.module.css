@@ -278,16 +278,36 @@
   padding: 8px 16px;
   line-height: 1.9;
 }
+.ftRoot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-h);
+  font-weight: 600;
+}
 .ftActive {
-  padding-left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: var(--accent-soft-bg);
   color: var(--accent);
   font-weight: 600;
   border-radius: 3px;
 }
 .ftItem {
-  padding-left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--text-dim);
+}
+.ftItem:hover {
+  color: var(--text-h);
+}
+.ftDir {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
 }
 .codeview {
   flex: 1;
@@ -334,6 +354,33 @@
   gap: 8px;
   font-size: 11.5px;
   color: var(--text);
+}
+.testResult {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.testSummary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.testOutput {
+  margin: 0;
+  max-height: 120px;
+  overflow: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-dim);
+  white-space: pre-wrap;
 }
 .tagPub {
   font-size: 10px;
