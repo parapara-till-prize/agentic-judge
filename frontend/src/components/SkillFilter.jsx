@@ -1,4 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { ChevronDown } from '@carbon/icons-react'
 import styles from '../styles/components/SkillFilter.module.css'
 
 // Multi-select skill filter built on Radix DropdownMenu checkbox items.
@@ -9,7 +10,10 @@ export default function SkillFilter({ skills, selected, onToggle, onClear }) {
       <DropdownMenu.Trigger
         className={`filter-pill ${styles.trigger}${count ? ' active' : ''}`}
       >
-        스킬{count ? ` · ${count}` : ''} ▾
+        <span>스킬{count ? ` · ${count}` : ''}</span>
+        <span className={styles.icon}>
+          <ChevronDown size={14} />
+        </span>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>

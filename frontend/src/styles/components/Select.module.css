@@ -46,6 +46,11 @@
     0 2px 6px rgba(0, 0, 0, 0.06);
   padding: 5px;
   z-index: 50;
+}
+/* Scope the enter animation to the open state only. A bare `animation` leaves a lingering
+   animationName on the closed element, so Radix's Presence waits for an exit animation that
+   never fires and the content stays mounted/visible — i.e. "outside click doesn't close". */
+.content[data-state='open'] {
   animation: rx-pop 0.12s ease;
 }
 .viewport {

@@ -1,5 +1,18 @@
 .trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
+}
+.icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  transition: transform 0.12s ease;
+}
+.trigger[data-state='open'] .icon {
+  color: var(--accent);
+  transform: rotate(180deg);
 }
 .trigger:focus-visible {
   outline: none;
@@ -21,6 +34,10 @@
     0 2px 6px rgba(0, 0, 0, 0.06);
   padding: 6px;
   z-index: 50;
+}
+/* open-state only: a bare animation leaves a lingering animationName so Radix Presence
+   waits for an exit animation that never fires and the menu stays open after dismissal. */
+.menu[data-state='open'] {
   animation: rx-pop 0.12s ease;
 }
 .label {
