@@ -117,7 +117,7 @@ def _workspace_files(attempt_id: str) -> list:
     """Return [{path, content}] for text files in the workdir (for the read-only viewer)."""
     wd = ATTEMPTS / attempt_id
     out = []
-    _skip = {"__pycache__", ".pytest_cache"}
+    _skip = {"__pycache__", ".pytest_cache", "harness"}
     for p in sorted(wd.rglob("*")):
         if not p.is_file() or _skip & set(p.parts):
             continue

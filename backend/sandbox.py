@@ -71,10 +71,11 @@ def run_tool(attempt_id: str, name: str, args: dict, image: str = DEFAULT_IMAGE)
     workdir = ATTEMPTS / attempt_id
 
     if name == "list_files":
+        _hidden = {"__pycache__", ".pytest_cache", "harness"}
         return "\n".join(
             str(p.relative_to(workdir))
             for p in sorted(workdir.rglob("*"))
-            if p.is_file()
+            if p.is_file() and not (_hidden & set(p.relative_to(workdir).parts))
         )
 
     if name == "read_file":

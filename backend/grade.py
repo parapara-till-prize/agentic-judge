@@ -131,12 +131,18 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     finally:
         shutil.rmtree(grade_dir, ignore_errors=True)
 
+    defined_total = len(hidden.get("cases", []))
+
     m = re.search(r"GRADE:(\{.*\})", out)
     if not m:
-        return {"passed": 0, "total": 0}
+        return {"passed": 0, "total": defined_total}
     try:
         data = json.loads(m.group(1))
-        passed, total = int(data.get("passed", 0)), int(data.get("total", 0))
+        passed = int(data.get("passed", 0))
+        total = int(data.get("total", 0))
     except (json.JSONDecodeError, TypeError, ValueError):
-        return {"passed": 0, "total": 0}
-    return {"passed": min(passed, total) if total else 0, "total": total}
+        return {"passed": 0, "total": defined_total}
+
+    # meta.json hidden.cases 개수가 권위있는 total — pytest 수집 실패 시에도 올바른 분모 유지
+    authoritative_total = defined_total or total
+    return {"passed": min(passed, authoritative_total), "total": authoritative_total}
