@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Folder, Document, CheckmarkFilled, ErrorFilled } from '@carbon/icons-react'
 import { Badge } from '../components/ui'
 import Markdown from '../components/Markdown'
@@ -116,6 +117,10 @@ export default function Workspace() {
             files: d.files,
           })
         },
+        onError: (e) => {
+          if (ignore) return
+          toast.error('워크스페이스를 시작하지 못했습니다', { description: e.message })
+        },
       },
     )
     return () => {
@@ -123,6 +128,15 @@ export default function Workspace() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, authed])
+
+  // hard gate: the workspace is auth-only. Once /auth/me resolves to anonymous, bounce back
+  // to the problem detail and pop the login modal so the page never renders for guests.
+  useEffect(() => {
+    if (meLoading || me) return
+    toast.info('계속하려면 로그인이 필요합니다', { id: 'auth-required' })
+    openLogin()
+    navigate(`/problem/${id}`, { replace: true })
+  }, [me, meLoading, id, openLogin, navigate])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -185,6 +199,7 @@ export default function Workspace() {
     } catch (e) {
       endTurnError()
       setSendError(e.message)
+      toast.error('메시지를 전송하지 못했습니다', { description: e.message })
     }
   }
 
@@ -201,12 +216,22 @@ export default function Workspace() {
       onSuccess: (d) => {
         setSubmitResult(d)
         setResultOpen(true)
+        if (d.total > 0) {
+          toast.success('성공적으로 제출했습니다', {
+            description: `채점 결과 ${d.score}점 · 히든 테스트 ${d.passed}/${d.total} 통과`,
+          })
+        }
       },
+      onError: (e) => toast.error('제출하지 못했습니다', { description: e.message }),
     })
   }
 
   const starting = authed && (startMut.isPending || (!attemptId && !startMut.isError))
   const title = problem?.title ?? '문제'
+
+  // don't render the workspace chrome for guests (or during the auth check) — the effect
+  // above redirects anonymous users and opens the login modal.
+  if (!me) return null
 
   return (
     <div className={styles.ws}>
@@ -288,18 +313,6 @@ export default function Workspace() {
 
           <div className={styles.scroll}>
             <div className={styles.chat}>
-              {!authed && !meLoading && (
-                <div className={styles.sysNote}>
-                  이 워크스페이스를 시작하려면 로그인이 필요합니다.{' '}
-                  <button
-                    className="btn btn--primary"
-                    style={{ marginTop: 10 }}
-                    onClick={openLogin}
-                  >
-                    로그인
-                  </button>
-                </div>
-              )}
               {starting && (
                 <div className={styles.sysNote}>워크스페이스를 준비하는 중…</div>
               )}
@@ -477,7 +490,10 @@ export default function Workspace() {
         confirmLabel="나가기"
         cancelLabel="계속 풀기"
         danger
-        onConfirm={() => navigate(`/problem/${id}`)}
+        onConfirm={() => {
+          navigate(`/problem/${id}`)
+          toast.info('시도를 종료했습니다')
+        }}
       />
     </div>
   )
