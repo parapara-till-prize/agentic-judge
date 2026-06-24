@@ -149,3 +149,16 @@ export function useSubmit(attemptId) {
     },
   })
 }
+
+// AI tutor feedback for the submit screen. Same hosted model as the agent, different prompt:
+// sends the failed hidden-case ids (from the submit result) and gets back a holistic eval +
+// one no-spoiler hint per failed case. Slow (one LLM call) -> the modal shows a spinner.
+export function useFeedback(attemptId) {
+  return useMutation({
+    mutationFn: (failedTests) =>
+      apiFetch(`/attempts/${attemptId}/feedback`, {
+        method: 'POST',
+        body: { failed_tests: failedTests ?? [] },
+      }),
+  })
+}

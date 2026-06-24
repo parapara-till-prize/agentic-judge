@@ -79,7 +79,7 @@ def _resolve(problem_id: str):
 
 
 def _zero() -> dict:
-    return {"passed": 0, "total": 0, "passed_cases": 0, "total_cases": 0}
+    return {"passed": 0, "total": 0, "passed_cases": 0, "total_cases": 0, "failed": []}
 
 
 def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
@@ -169,8 +169,12 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
         passed_ids = set(data["passed_ids"]) & set(weights)  # only declared cases count
         passed_cases = len(passed_ids)
         passed = sum(weights[i] for i in passed_ids)
+        # failed case ids (declared cases that didn't pass) feed the AI feedback route —
+        # one no-spoiler hint per failure; scoring itself only uses passed/total.
+        failed = [c["id"] for c in cases if c["id"] not in passed_ids]
         return {"passed": passed, "total": weighted_total,
-                "passed_cases": passed_cases, "total_cases": total_cases}
+                "passed_cases": passed_cases, "total_cases": total_cases,
+                "failed": failed}
 
     # legacy aggregate: count-based, since there are no per-case ids to weight by
     try:
@@ -179,5 +183,7 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
         p = 0
     passed_cases = min(p, total_cases) if total_cases else p
     total = total_cases or int(data.get("total", 0) or 0)
+    # legacy aggregate has no per-case ids, so we can't say which cases failed.
     return {"passed": passed_cases, "total": total,
-            "passed_cases": passed_cases, "total_cases": total or passed_cases}
+            "passed_cases": passed_cases, "total_cases": total or passed_cases,
+            "failed": []}

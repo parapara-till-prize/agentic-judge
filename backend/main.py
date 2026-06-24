@@ -29,6 +29,7 @@ from sqlmodel import Session, select  # noqa: E402
 
 import agent  # noqa: E402
 import auth  # noqa: E402
+import feedback  # noqa: E402
 import grade  # noqa: E402
 import scoring  # noqa: E402
 from db import Attempt, Submission, engine, init_db  # noqa: E402
@@ -71,6 +72,10 @@ class FileSave(BaseModel):
 class Credentials(BaseModel):
     username: str
     password: str
+
+
+class FeedbackRequest(BaseModel):
+    failed_tests: list[str] = []
 
 
 # --- auth (session cookie) --------------------------------------------------
@@ -127,6 +132,23 @@ def _workspace_files(attempt_id: str) -> list:
             content = "<binary>"
         out.append({"path": str(p.relative_to(wd)), "content": content})
     return out
+
+
+def _attempt_code(attempt_id: str) -> str:
+    """Concatenate the attempt's solution files (excluding visible tests + harness) into one
+    fenced blob for the feedback prompt — i.e. the code under review, minus scaffolding."""
+    wd = ATTEMPTS / attempt_id
+    skip = {"__pycache__", ".pytest_cache", "harness", "tests"}
+    chunks = []
+    for p in sorted(wd.rglob("*")):
+        if not p.is_file() or skip & set(p.relative_to(wd).parts):
+            continue
+        try:
+            content = p.read_text()[:MAX_OUTPUT]
+        except UnicodeDecodeError:
+            continue
+        chunks.append(f"### {p.relative_to(wd)}\n```\n{content}\n```")
+    return "\n\n".join(chunks)
 
 
 def _problem_stats(problem_id: str, session: Session) -> dict:
@@ -347,6 +369,7 @@ def submit(attempt_id: str):
         result = grade.run_hidden_tests(attempt_id, slug)
         passed, total = result["passed"], result["total"]
         passed_cases, total_cases = result["passed_cases"], result["total_cases"]
+        failed_tests = result.get("failed", [])  # failed hidden case ids -> AI feedback route
         scored = scoring.evaluate(
             meta, passed, total, attempt.turns, attempt.tokens
         )
@@ -384,7 +407,36 @@ def submit(attempt_id: str):
         "tokens": tokens,
         "axes": scored["axes"],
         "feedback": feedback,
+        "failed": failed_tests,  # failed hidden case ids -> fed to the AI feedback route
     }
+
+
+@app.post("/attempts/{attempt_id}/feedback")
+def get_feedback(
+    attempt_id: str,
+    body: FeedbackRequest,
+    user: str = Depends(auth.get_current_user),
+):
+    """AI tutor feedback for the submit screen: a holistic evaluation + one no-spoiler hint
+    per failed hidden case. Same hosted model as the agent loop, only the prompt differs.
+
+    Synchronous (the client shows a spinner until it returns). Problem + code are assembled
+    server-side from the attempt; `failed_tests` (failed hidden case ids) come from the just-
+    returned submit result. Owner-gated, like the other attempt-scoped routes.
+    """
+    with Session(engine) as session:
+        attempt = session.get(Attempt, attempt_id)
+        if not attempt:
+            raise HTTPException(404, "unknown attempt")
+        if attempt.user != user:
+            raise HTTPException(403, "not your attempt")
+        problem_id = attempt.problem_id
+
+    slug, _meta = _resolve(problem_id)
+    statement_file = PROBLEMS / slug / "statement.md"
+    statement = statement_file.read_text() if statement_file.exists() else ""
+    code = _attempt_code(attempt_id)
+    return feedback.generate_feedback(statement, code, body.failed_tests)
 
 
 @app.get("/leaderboard")
