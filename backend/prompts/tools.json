@@ -1,0 +1,49 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "list_files",
+      "description": "List all files in the workspace.",
+      "parameters": { "type": "object", "properties": {} }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "read_file",
+      "description": "Read a file's contents.",
+      "parameters": {
+        "type": "object",
+        "properties": { "path": { "type": "string" } },
+        "required": ["path"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "write_file",
+      "description": "Create or overwrite a file with the given content.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "content": { "type": "string" }
+        },
+        "required": ["path", "content"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "run_command",
+      "description": "Run a shell command in the sandboxed container (e.g. pytest).",
+      "parameters": {
+        "type": "object",
+        "properties": { "command": { "type": "string" } },
+        "required": ["command"]
+      }
+    }
+  }
+]
