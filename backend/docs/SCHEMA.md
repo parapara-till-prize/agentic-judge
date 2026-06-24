@@ -204,6 +204,37 @@ problems/<slug>/
 - `selector` + `prop` + `expect`: Playwright `getComputedStyle` 단언
 - `expect: "*"` = 값이 default(`none`/`0px`/`normal`)가 아니면 통과
 - `visual`: 레퍼런스 스크린샷(`hidden/ref/desktop.png`)과 픽셀 diff 비율
+- ⚠️ 단일 뷰포트 computed-style 단언만 가능 — **반응형(뷰포트 전환)·axe a11y 같은
+  검사는 표현 불가**. 그런 문제는 아래 `browser-scenarios`(문제별 그레이더)를 쓴다.
+- 실행 경로(`/runners/run_fe.js` 마운트 + grade.py 라우팅)는 **아직 미배선**.
+
+### frontend — `browser-scenarios` (문제별 그레이더, sql-scenarios와 동형)
+
+`dom-style-assert`로 표현 못 하는 검사(뷰포트 전환, 박스 기하, axe-core 등)는 SQL의
+`sql-scenarios`와 같은 방식 — 문제별 `cmd` 그레이더에 위임한다. `open`도 동일하게
+문제별 visible 스크립트를 가리킨다(`sql-visible`이 `repo/run_tests.py`를 가리키는 것과 동형).
+
+```json
+"open": {
+  "kind": "browser-visible",
+  "cmd": "node repo/tests/run_visible.js"
+},
+"hidden": {
+  "kind": "browser-scenarios",
+  "cmd": "node hidden/run_grade.js",
+  "cases": [
+    { "id": "layout_row",        "weight": 1 },
+    { "id": "responsive_stack",  "weight": 2 },
+    { "id": "accessibility",     "weight": 2 }
+  ]
+}
+```
+
+- `run_grade.js`는 헤드리스 브라우저를 직접 띄워 데스크톱/모바일 레이아웃·추천 카드 구분·
+  axe-core 접근성을 검증하고 `GRADE:{"passed":N,"total":M}` 출력 (sql-scenarios와 동일 계약)
+- `cases`는 **문서화·분모 용도** — grade.py가 `hidden.cases` 개수를 authoritative total로 사용
+- 현재 유일한 frontend 문제 `responsive-pricing`이 이 형식을 쓴다 (`dom-style-assert`는 향후
+  `run_fe.js` 배선 후 선언형 옵션)
 
 ---
 
