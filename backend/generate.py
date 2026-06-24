@@ -631,6 +631,6 @@ def build_meta(slug: str, title: str, problem_type: str, difficulty: str,
         base["category"] = "프론트엔드"
         base["submission"] = {"entry": "index.html", "runtime": "judge-browser:base"}
         base["open"] = {"kind": "browser-visible", "cmd": "node tests/run_visible.js"}
-        base["hidden"].update({"kind": "browser-scenarios", "cmd": "node hidden/run_grade.js"})
+        base["hidden"].update({"kind": "browser-scenarios", "cmd": "node run_grade.js"})
 
     return base
