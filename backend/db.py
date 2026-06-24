@@ -33,5 +33,15 @@ class Submission(SQLModel, table=True):
     tokens: int = 0
 
 
+class User(SQLModel, table=True):
+    username: str = Field(primary_key=True)
+    password_hash: str  # "salt$hash" (pbkdf2-sha256), see auth.py
+
+
+class UserSession(SQLModel, table=True):
+    token: str = Field(primary_key=True)
+    username: str
+
+
 def init_db():
     SQLModel.metadata.create_all(engine)

@@ -2,6 +2,16 @@
   "title": "로그 재정렬 API",
   "difficulty": "mid",
   "category": "API 구현",
+  "domain": "backend",
+  "skills": ["정렬", "파싱"],
   "ideal_turns": 4,
+  "ideal_tokens": 8000,
+  "scoring": {
+    "axes": [
+      { "key": "accuracy", "label": "정확도", "weight": 0.65 },
+      { "key": "turn_efficiency", "label": "효율 · 턴", "weight": 0.2 },
+      { "key": "token_efficiency", "label": "효율 · 토큰", "weight": 0.15 }
+    ]
+  },
   "trap_note": "naive sorted(logs) fails: must split id/content, sort letter-logs by content then identifier, keep digit-logs in original order and after all letter-logs. Hidden tests tie-break-by-identifier, digit stability, empty input, all-digits."
 }
