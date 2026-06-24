@@ -152,6 +152,26 @@ export function useSubmit(attemptId) {
   })
 }
 
+// --- problem generation ----------------------------------------------------
+export function useGenerateProblem() {
+  return useMutation({
+    mutationFn: (body) =>
+      apiFetch('/problems/generate', { method: 'POST', body }),
+  })
+}
+
+export function usePublishProblem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) =>
+      apiFetch('/problems/publish', { method: 'POST', body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.problems })
+      toast.success('문제가 등록됐어요')
+    },
+  })
+}
+
 // AI tutor feedback for the submit screen. Same hosted model as the agent, different prompt:
 // sends the failed hidden-case ids (from the submit result) and gets back a holistic eval +
 // one no-spoiler hint per failed case. Slow (one LLM call) -> the modal shows a spinner.

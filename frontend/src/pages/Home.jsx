@@ -74,6 +74,12 @@ export default function Home() {
               코딩은 에이전트가 해요. 당신은 <b>자연어로 지시</b>하고 결과를{' '}
               <b>검증</b>해요.
             </div>
+            <button
+              className={styles.createBtn}
+              onClick={() => navigate('/problems/create')}
+            >
+              + 문제 만들기
+            </button>
           </div>
 
           {/* domain tracks */}

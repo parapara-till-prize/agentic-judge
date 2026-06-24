@@ -1,0 +1,462 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ── stepper ─────────────────────────────────────────────────── */
+.stepper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.stepNum {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.active .stepNum {
+  background: var(--accent);
+  color: #fff;
+}
+
+.done .stepNum {
+  background: #22c55e;
+  color: #fff;
+}
+
+.stepLabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.active .stepLabel {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.stepLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  margin: 0 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ── card ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cardTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-h);
+}
+
+/* ── form fields ─────────────────────────────────────────────── */
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.input,
+.select,
+.textarea {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--accent);
+}
+
+.codeArea {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  min-height: 300px;
+}
+
+.charCount {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+/* ── radio ───────────────────────────────────────────────────── */
+.radioGroup {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.4rem 0;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  cursor: pointer;
+  color: var(--text);
+}
+
+/* ── skill tags ──────────────────────────────────────────────── */
+.skillInput {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.addBtn {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.skillChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  background: var(--accent-soft-bg);
+  color: var(--accent-strong);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.chip button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.chip button:hover { opacity: 1; }
+
+.suggestion {
+  padding: 0.2rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.suggestion:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── buttons ─────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.primary {
+  padding: 0.65rem 1.5rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.primary:hover:not(:disabled) { background: var(--accent-strong); }
+
+.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.secondary {
+  padding: 0.65rem 1.2rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.secondary:hover { background: var(--bg); }
+
+/* ── badges ──────────────────────────────────────────────────── */
+.secret {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--danger);
+  background: var(--danger-soft-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+/* ── generation error ────────────────────────────────────────── */
+.genError {
+  background: var(--danger-soft-bg);
+  border: 1px solid var(--danger-soft-border);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.genErrorTitle {
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.outputBlock {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.outputLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--danger);
+  opacity: 0.8;
+}
+
+/* ── loading overlay ─────────────────────────────────────────── */
+.loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  z-index: 200;
+}
+
+.loadingBox {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  min-width: 260px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.loadingSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.loadingStep {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loadingStep.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── preview sections ────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.editTag {
+  font-size: 0.72rem;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.readonlyTag {
+  font-size: 0.72rem;
+  background: var(--bg);
+  color: var(--text-muted);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.hiddenTag {
+  font-size: 0.72rem;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 360px;
+  overflow-y: auto;
+  color: var(--text);
+}
+
+/* ── hidden cases ────────────────────────────────────────────── */
+.caseList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.caseRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.weight {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* ── summary table ───────────────────────────────────────────── */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.summaryRow span { color: var(--text-muted); }
+.summaryRow strong { color: var(--text-h); }

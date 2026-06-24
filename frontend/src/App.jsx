@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import ProblemDetail from './pages/ProblemDetail'
 import Workspace from './pages/Workspace'
 import Leaderboard from './pages/Leaderboard'
+import ProblemCreate from './pages/ProblemCreate'
 import LoginModal from './components/LoginModal'
 import Toaster from './components/Toaster'
 
@@ -13,6 +14,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/problems" element={<Home />} />
+        <Route path="/problems/create" element={<ProblemCreate />} />
         <Route path="/problem/:id" element={<ProblemDetail />} />
         <Route path="/workspace/:id" element={<Workspace />} />
         <Route path="/leaderboard" element={<Leaderboard />} />

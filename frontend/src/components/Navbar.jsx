@@ -1,10 +1,11 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import * as Dropdown from '@radix-ui/react-dropdown-menu'
 import {
   Login as LoginIcon,
   Logout as LogoutIcon,
   UserAvatar,
   ChevronDown,
+  Add,
 } from '@carbon/icons-react'
 import { useMe, useLogout } from '../api/queries'
 import { useUiStore } from '../store/uiStore'
@@ -14,6 +15,7 @@ export default function Navbar() {
   const { data: me } = useMe()
   const logout = useLogout()
   const openLogin = useUiStore((s) => s.openLogin)
+  const navigate = useNavigate()
 
   return (
     <nav className={styles.nav}>
@@ -54,6 +56,13 @@ export default function Navbar() {
                   <UserAvatar size={16} />
                   마이페이지
                   <span className={styles.soonTag}>준비 중</span>
+                </Dropdown.Item>
+                <Dropdown.Item
+                  className={styles.menuItem}
+                  onSelect={() => navigate('/problems/create')}
+                >
+                  <Add size={16} />
+                  문제 만들기
                 </Dropdown.Item>
                 <Dropdown.Separator className={styles.menuSep} />
                 <Dropdown.Item

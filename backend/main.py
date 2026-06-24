@@ -74,6 +74,20 @@ class Credentials(BaseModel):
     password: str
 
 
+class GenerateProblem(BaseModel):
+    title: str
+    type: str        # algorithm | sql | frontend
+    difficulty: str  # basic / mid / hard
+    skills: list[str]
+    story: str       # 2–4 sentence problem context (input to Gemini)
+    intent: str      # hidden trap/goal (Gemini only, never shown to agents)
+
+
+class PublishProblem(BaseModel):
+    validated_token: str
+    statement_md: str | None = None  # overrides generated version if user edited it
+
+
 class FeedbackRequest(BaseModel):
     failed_tests: list[str] = []
 
@@ -451,6 +465,93 @@ def submit(attempt_id: str):
         "feedback": feedback,
         "failed": failed_tests,  # failed hidden case ids -> fed to the AI feedback route
     }
+
+
+@app.post("/problems/generate")
+def generate_problem_route(body: GenerateProblem, user: str = Depends(auth.get_current_user)):
+    """Call Gemini to generate all problem files, validate with model answer, return token.
+    1회 자동 재시도: 검증 실패 시 Gemini를 한 번 더 호출해 새 코드로 재검증."""
+    import generate as gen
+
+    generated = None
+    validation = None
+    for attempt in range(2):
+        try:
+            generated = gen.call_gemini(
+                title=body.title,
+                problem_type=body.type,
+                difficulty=body.difficulty,
+                skills=body.skills,
+                story=body.story,
+                intent=body.intent,
+            )
+        except Exception as e:
+            if attempt == 0:
+                continue  # 생성 자체 실패 → 한 번 더 시도
+            raise HTTPException(502, f"Gemini 생성 실패: {e}")
+
+        validation = gen.validate_generated(generated, body.type)
+        if validation["ok"]:
+            break  # 검증 통과
+
+    if not validation["ok"]:
+        return {
+            "ok": False,
+            "visible_ok": validation["visible_ok"],
+            "visible_output": validation["visible_output"],
+            "hidden_ok": validation["hidden_ok"],
+            "hidden_output": validation["hidden_output"],
+        }
+
+    slug = gen._slug(body.title)
+    meta = gen.build_meta(slug, body.title, body.type, body.difficulty,
+                          body.skills, generated["hidden_cases"])
+    token = gen.issue_token({
+        "slug": slug,
+        "meta": meta,
+        "files": {**generated, "statement_md": generated["statement_md"]},
+    })
+
+    # Build preview files based on problem type
+    if body.type == "algorithm":
+        preview_files = [{"name": "test_visible.py", "content": generated["test_visible_py"]}]
+    elif body.type == "sql":
+        preview_files = [
+            {"name": "schema.sql", "content": generated["schema_sql"]},
+            {"name": "run_tests.py", "content": generated["run_tests_py"]},
+        ]
+    elif body.type == "frontend":
+        preview_files = [
+            {"name": "index.html", "content": generated["starter_html"]},
+            {"name": "run_visible.js", "content": generated["run_visible_js"]},
+        ]
+    else:
+        preview_files = []
+
+    return {
+        "ok": True,
+        "validated_token": token,
+        "slug": slug,
+        "statement_md": generated["statement_md"],
+        "preview_files": preview_files,
+        "hidden_cases": generated["hidden_cases"],
+    }
+
+
+@app.post("/problems/publish")
+def publish_problem_route(body: PublishProblem, user: str = Depends(auth.get_current_user)):
+    """Consume validated_token and write problem files to disk."""
+    import generate as gen
+
+    data = gen.consume_token(body.validated_token)
+    if not data:
+        raise HTTPException(400, "validated_token이 만료됐거나 유효하지 않습니다 (10분 이내에 등록해주세요)")
+
+    if body.statement_md is not None:
+        data["files"]["statement_md"] = body.statement_md
+
+    gen.save_problem(data["slug"], data["meta"], data["files"])
+    return {"ok": True, "id": data["slug"]}
 
 
 @app.post("/attempts/{attempt_id}/feedback")
