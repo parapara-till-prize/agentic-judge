@@ -131,7 +131,7 @@ def _workspace_files(attempt_id: str) -> list:
     """Return [{path, content}] for text files in the workdir (for the read-only viewer)."""
     wd = ATTEMPTS / attempt_id
     out = []
-    _skip = {"__pycache__", ".pytest_cache", "harness"}
+    _skip = {"__pycache__", ".pytest_cache"}
     for p in sorted(wd.rglob("*")):
         if not p.is_file() or _skip & set(p.parts):
             continue
@@ -225,9 +225,6 @@ def start_attempt(body: StartAttempt, user: str = Depends(auth.get_current_user)
 
     attempt_id = uuid.uuid4().hex
     shutil.copytree(src, ATTEMPTS / attempt_id)
-    harness_src = BASE / "harness"
-    if harness_src.exists():
-        shutil.copytree(harness_src, ATTEMPTS / attempt_id / "harness")
     statement = (PROBLEMS / slug / "statement.md").read_text()
 
     with Session(engine) as session:

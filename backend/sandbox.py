@@ -71,7 +71,7 @@ def run_tool(attempt_id: str, name: str, args: dict, image: str = DEFAULT_IMAGE)
     workdir = ATTEMPTS / attempt_id
 
     if name == "list_files":
-        _hidden = {"__pycache__", ".pytest_cache", "harness"}
+        _hidden = {"__pycache__", ".pytest_cache"}
         return "\n".join(
             str(p.relative_to(workdir))
             for p in sorted(workdir.rglob("*"))

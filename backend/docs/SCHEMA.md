@@ -161,21 +161,6 @@ problems/<slug>/
 }
 ```
 
-### algorithm — `concurrency` (동시성 문제)
-
-```json
-"hidden": {
-  "kind": "concurrency",
-  "cases": [
-    { "id": "test_concurrent_no_lost_update", "weight": 3 },
-    { "id": "test_idempotent_init",           "weight": 1 }
-  ]
-}
-```
-
-- `hidden/test_hidden.py`가 스레드를 직접 생성해 동시 실행을 검증함
-- 러너는 pytest로 실행하되 단일 프로세스 내 스레드 레벨에서 경합 발생
-
 ### sql — `sql-scenarios`
 
 ```json

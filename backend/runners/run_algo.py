@@ -40,8 +40,6 @@ def run_hidden(meta):
         _run_pytest_hidden(hidden)
     elif kind == "pytest-perf":
         _run_pytest_perf(hidden)
-    elif kind == "concurrency":
-        _run_pytest_hidden(hidden)  # concurrency tests are also pytest; they manage threads internally
     else:
         print(f"GRADE:" + json.dumps({"passed": 0, "total": 1, "error": f"unknown kind: {kind}"}))
         sys.exit(1)
