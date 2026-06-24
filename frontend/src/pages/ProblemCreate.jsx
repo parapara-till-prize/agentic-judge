@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar'
 import { useGenerateProblem, usePublishProblem } from '../api/queries'
 import styles from '../styles/pages/ProblemCreate.module.css'
 
-const STEPS = ['기본 정보', '스토리 & 의도', 'AI 생성', '확인 & 등록']
+const STEPS = ['기본 정보', '스토리 & 의도', '생성 결과', '확인 & 등록']
 
 const DIFFICULTY_OPTIONS = [
   { value: 'basic', label: '초급' },
@@ -12,13 +12,15 @@ const DIFFICULTY_OPTIONS = [
   { value: 'hard', label: '고급' },
 ]
 
-const SKILL_SUGGESTIONS = ['배열', '문자열', '정규식', '재귀', '해시맵', '스택', '큐', '정렬', '이분탐색', '그래프', 'SQL', 'JOIN', 'GROUP BY']
+const SKILL_SUGGESTIONS = [
+  '배열', '문자열', '정규식', '재귀', '해시맵',
+  '스택', '큐', '정렬', '이분탐색', '그래프',
+]
 
 export default function ProblemCreate() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
 
-  // form state
   const [form, setForm] = useState({
     title: '',
     type: 'algorithm',
@@ -28,22 +30,17 @@ export default function ProblemCreate() {
     intent: '',
   })
   const [skillInput, setSkillInput] = useState('')
-
-  // generation result
-  const [generated, setGenerated] = useState(null)   // {validated_token, statement_md, test_visible_py, hidden_cases, slug}
+  const [generated, setGenerated] = useState(null)
   const [editedStatement, setEditedStatement] = useState('')
 
   const generate = useGenerateProblem()
   const publish = usePublishProblem()
 
-  // ----- field helpers -----
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+  const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
   function addSkill(s) {
-    const trimmed = s.trim()
-    if (trimmed && !form.skills.includes(trimmed)) {
-      setForm((f) => ({ ...f, skills: [...f.skills, trimmed] }))
-    }
+    const v = s.trim()
+    if (v && !form.skills.includes(v)) setForm((f) => ({ ...f, skills: [...f.skills, v] }))
     setSkillInput('')
   }
 
@@ -52,20 +49,12 @@ export default function ProblemCreate() {
   }
 
   function handleSkillKeyDown(e) {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault()
-      addSkill(skillInput)
-    }
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill(skillInput) }
   }
 
-  // ----- step navigation -----
-  function next() { setStep((s) => Math.min(s + 1, 3)) }
-  function prev() { setStep((s) => Math.max(s - 1, 0)) }
+  const next = () => setStep((s) => Math.min(s + 1, 3))
+  const prev = () => setStep((s) => Math.max(s - 1, 0))
 
-  function step1Valid() { return form.title.trim() }
-  function step2Valid() { return form.story.trim().length >= 20 && form.intent.trim().length >= 10 }
-
-  // ----- generate -----
   async function handleGenerate() {
     const res = await generate.mutateAsync({
       title: form.title,
@@ -75,51 +64,43 @@ export default function ProblemCreate() {
       story: form.story,
       intent: form.intent,
     })
-    if (!res.ok) return  // error shown via mutation state
+    if (!res.ok) return
     setGenerated(res)
     setEditedStatement(res.statement_md)
     next()
   }
 
-  // ----- publish -----
   async function handlePublish() {
-    await publish.mutateAsync({
+    const res = await publish.mutateAsync({
       validated_token: generated.validated_token,
       statement_md: editedStatement !== generated.statement_md ? editedStatement : undefined,
     })
-    navigate(`/problem/${generated.slug}`)
-  }
-
-  // ----- generation error message -----
-  function renderGenError() {
-    const data = generate.data
-    if (!data || data.ok) return null
-    return (
-      <div className={styles.genError}>
-        <p className={styles.genErrorTitle}>모범답안 검증 실패</p>
-        {!data.visible_ok && (
-          <details>
-            <summary>test_visible.py 실패 출력</summary>
-            <pre className={styles.pre}>{data.visible_output}</pre>
-          </details>
-        )}
-        {!data.hidden_ok && (
-          <details>
-            <summary>test_hidden.py 실패 출력</summary>
-            <pre className={styles.pre}>{data.hidden_output}</pre>
-          </details>
-        )}
-        <p>Gemini를 다시 호출하거나 스토리·의도를 수정해보세요.</p>
-      </div>
-    )
+    navigate(`/problem/${res.id}`)
   }
 
   return (
     <div className={styles.page}>
       <Navbar />
 
+      {/* 생성 중 로딩 오버레이 */}
+      {generate.isPending && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingBox}>
+            <div className={styles.spinner} />
+            <p className={styles.loadingTitle}>AI가 문제를 생성하고 있어요</p>
+            <div className={styles.loadingSteps}>
+              <div className={styles.loadingStep}>① Gemini로 문제 파일 생성 중...</div>
+              <div className={styles.loadingStep}>② 모범답안으로 테스트 검증 중...</div>
+              <div className={styles.loadingStep} style={{ color: 'var(--text-dim)', marginTop: 4 }}>
+                약 15~30초 소요됩니다
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.container}>
-        {/* stepper */}
+        {/* 스테퍼 */}
         <div className={styles.stepper}>
           {STEPS.map((label, i) => (
             <div
@@ -133,7 +114,7 @@ export default function ProblemCreate() {
           ))}
         </div>
 
-        {/* ── Step 0: 기본 정보 ── */}
+        {/* Step 0: 기본 정보 */}
         {step === 0 && (
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>기본 정보</h2>
@@ -143,14 +124,14 @@ export default function ProblemCreate() {
               <input
                 className={styles.input}
                 value={form.title}
-                onChange={set('title')}
+                onChange={setField('title')}
                 placeholder="예: 로그 파서 확장"
               />
             </label>
 
             <label className={styles.label}>
               유형
-              <select className={styles.select} value={form.type} onChange={set('type')}>
+              <select className={styles.select} value={form.type} onChange={setField('type')}>
                 <option value="algorithm">알고리즘</option>
               </select>
             </label>
@@ -165,7 +146,7 @@ export default function ProblemCreate() {
                       name="difficulty"
                       value={opt.value}
                       checked={form.difficulty === opt.value}
-                      onChange={set('difficulty')}
+                      onChange={setField('difficulty')}
                     />
                     {opt.label}
                   </label>
@@ -181,13 +162,17 @@ export default function ProblemCreate() {
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
                   onKeyDown={handleSkillKeyDown}
-                  placeholder="입력 후 Enter (예: 정규식)"
+                  placeholder="입력 후 Enter"
                 />
-                <button className={styles.addBtn} type="button" onClick={() => addSkill(skillInput)}>추가</button>
+                <button className={styles.addBtn} type="button" onClick={() => addSkill(skillInput)}>
+                  추가
+                </button>
               </div>
               <div className={styles.skillChips}>
                 {SKILL_SUGGESTIONS.filter((s) => !form.skills.includes(s)).map((s) => (
-                  <button key={s} type="button" className={styles.suggestion} onClick={() => addSkill(s)}>{s}</button>
+                  <button key={s} type="button" className={styles.suggestion} onClick={() => addSkill(s)}>
+                    {s}
+                  </button>
                 ))}
               </div>
               {form.skills.length > 0 && (
@@ -203,38 +188,45 @@ export default function ProblemCreate() {
             </label>
 
             <div className={styles.actions}>
-              <button className={styles.primary} disabled={!step1Valid()} onClick={next}>다음</button>
+              <button className={styles.primary} disabled={!form.title.trim()} onClick={next}>
+                다음
+              </button>
             </div>
           </div>
         )}
 
-        {/* ── Step 1: 스토리 & 출제의도 ── */}
+        {/* Step 1: 스토리 & 출제의도 */}
         {step === 1 && (
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>스토리 & 출제 의도</h2>
 
             <label className={styles.label}>
               문제 스토리
-              <span className={styles.hint}>Gemini가 statement.md를 이 스토리 기반으로 작성합니다. 2~4문장 정도면 충분합니다.</span>
+              <span className={styles.hint}>
+                Gemini가 이 스토리를 바탕으로 statement.md를 작성합니다. 2~4문장이면 충분합니다.
+              </span>
               <textarea
                 className={styles.textarea}
                 rows={4}
                 value={form.story}
-                onChange={set('story')}
+                onChange={setField('story')}
                 placeholder="예: 서버 로그 포맷이 바뀌어서 타임스탬프가 추가됐다. 기존 parse() 함수를 새 포맷에 맞게 수정해야 한다."
               />
               <span className={styles.charCount}>{form.story.length}자</span>
             </label>
 
             <label className={styles.label}>
-              출제 의도 <span className={styles.secret}>(비공개 — 에이전트에게 숨겨짐)</span>
-              <span className={styles.hint}>어떤 실수·트랩을 테스트하는지 적어주세요. hidden test 생성에만 쓰입니다.</span>
+              출제 의도
+              <span className={styles.secret}>비공개 — 에이전트에게 숨겨짐</span>
+              <span className={styles.hint}>
+                어떤 실수나 트랩을 테스트하는지 적어주세요. hidden test 생성에만 사용됩니다.
+              </span>
               <textarea
                 className={styles.textarea}
                 rows={3}
                 value={form.intent}
-                onChange={set('intent')}
-                placeholder="예: parse()를 수정한 후 호출하는 다른 파일들도 같이 업데이트해야 한다는 점을 놓치면 실패"
+                onChange={setField('intent')}
+                placeholder="예: parse()를 수정한 후 호출하는 다른 파일들도 같이 업데이트해야 한다는 것을 놓치면 실패"
               />
             </label>
 
@@ -242,21 +234,37 @@ export default function ProblemCreate() {
               <button className={styles.secondary} onClick={prev}>이전</button>
               <button
                 className={styles.primary}
-                disabled={!step2Valid() || generate.isPending}
+                disabled={form.story.trim().length < 10 || form.intent.trim().length < 5}
                 onClick={handleGenerate}
               >
-                {generate.isPending ? 'AI 생성 중...' : 'AI로 생성하기'}
+                AI로 생성하기
               </button>
             </div>
 
             {generate.isError && (
               <div className={styles.genError}>{generate.error?.message}</div>
             )}
-            {renderGenError()}
+            {generate.data && !generate.data.ok && (
+              <div className={styles.genError}>
+                <p className={styles.genErrorTitle}>모범답안 검증 실패 — 다시 생성해보세요</p>
+                {!generate.data.visible_ok && (
+                  <details>
+                    <summary>test_visible.py 출력</summary>
+                    <pre className={styles.pre}>{generate.data.visible_output}</pre>
+                  </details>
+                )}
+                {!generate.data.hidden_ok && (
+                  <details>
+                    <summary>test_hidden.py 출력</summary>
+                    <pre className={styles.pre}>{generate.data.hidden_output}</pre>
+                  </details>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── Step 2: 생성 결과 미리보기 + statement 편집 ── */}
+        {/* Step 2: 생성 결과 미리보기 + statement 편집 */}
         {step === 2 && generated && (
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>생성 결과 확인</h2>
@@ -291,7 +299,7 @@ export default function ProblemCreate() {
                 {(generated.hidden_cases || []).map((c) => (
                   <div key={c.id} className={styles.caseRow}>
                     <code>{c.id}</code>
-                    <span className={styles.weight}>weight: {c.weight}</span>
+                    <span className={styles.weight}>weight {c.weight}</span>
                   </div>
                 ))}
               </div>
@@ -304,14 +312,18 @@ export default function ProblemCreate() {
           </div>
         )}
 
-        {/* ── Step 3: 최종 확인 & 등록 ── */}
+        {/* Step 3: 최종 확인 & 등록 */}
         {step === 3 && generated && (
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>등록 확인</h2>
 
             <div className={styles.summary}>
-              <div className={styles.summaryRow}><span>제목</span><strong>{form.title}</strong></div>
-              <div className={styles.summaryRow}><span>유형</span><strong>{form.type}</strong></div>
+              <div className={styles.summaryRow}>
+                <span>제목</span><strong>{form.title}</strong>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>유형</span><strong>알고리즘</strong>
+              </div>
               <div className={styles.summaryRow}>
                 <span>난이도</span>
                 <strong>{DIFFICULTY_OPTIONS.find((d) => d.value === form.difficulty)?.label}</strong>
@@ -324,19 +336,11 @@ export default function ProblemCreate() {
                 <span>히든 테스트</span>
                 <strong>{generated.hidden_cases?.length || 0}개</strong>
               </div>
-              <div className={styles.summaryRow}>
-                <span>토큰 만료</span>
-                <strong>10분 이내 등록 필요</strong>
-              </div>
             </div>
 
             <div className={styles.actions}>
               <button className={styles.secondary} onClick={prev}>이전</button>
-              <button
-                className={styles.primary}
-                disabled={publish.isPending}
-                onClick={handlePublish}
-              >
+              <button className={styles.primary} disabled={publish.isPending} onClick={handlePublish}>
                 {publish.isPending ? '등록 중...' : '문제 등록'}
               </button>
             </div>
