@@ -18,6 +18,15 @@ problems/<slug>/
     ref/                   (frontend: 레퍼런스 이미지)
 ```
 
+> **런타임 레이아웃 (중요).** `meta.json`의 모든 `cmd`·`entry` 경로는 **컨테이너 작업폴더
+> 루트(`/work`) 기준**이다 — `repo/`·`hidden/` 접두사를 붙이지 않는다.
+> - `start_attempt`는 `repo/`의 **내용물**을 attempt 루트로 복사한다 → 에이전트는 `/work/solution.py`,
+>   `/work/index.html`을 본다 (`repo/solution.py`가 아님).
+> - 채점 시 grade.py는 attempt 파일(visible 테스트 제외) + `hidden/`의 **내용물**을 grade 루트에
+>   겹쳐 깐다 → 그레이더는 `/work/solution.py`와 `/work/run_grade.py`를 같은 루트에서 본다.
+> - 따라서 `open.cmd`는 `python3 -m pytest tests/test_visible.py`, `hidden.cmd`는
+>   `python3 run_grade.py`처럼 **루트 상대 경로**로 쓴다.
+
 ---
 
 ## 1. 공통 코어 필드
@@ -25,7 +34,7 @@ problems/<slug>/
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `schema_version` | `2` | 항상 숫자 2 (고정) |
-| `id` | string | 폴더명과 동일한 슬러그 (예: `"range-sum"`) |
+| `id` | number | **공개용 숫자 id** — 사용자/프론트에 노출 (예: `1024`). 도메인별 대역(알고리즘 `1xxx`, sql `2xxx`, frontend `3xxx`). 폴더명 슬러그(내부 식별자)와 별개 |
 | `title` | string | 사용자에게 표시되는 문제 제목 |
 | `type` | `"algorithm"` \| `"sql"` \| `"frontend"` | **채점 엔진 선택자** (내부용) |
 | `category` | string | **사용자 표시용** 중립 라벨 — 함정 내용 포함 금지 |
@@ -42,7 +51,7 @@ problems/<slug>/
 
 ```json
 {
-  "entry": "repo/solution.py",   // 에이전트가 작성하는 파일
+  "entry": "solution.py",   // 에이전트가 작성하는 파일
   "runtime": "judge-py:base"     // 도커 이미지 (아래 표 참조)
 }
 ```
@@ -86,7 +95,7 @@ problems/<slug>/
 ```json
 "open": {
   "kind": "pytest-visible",
-  "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+  "cmd": "python3 -m pytest tests/test_visible.py -q --tb=short"
 }
 ```
 
@@ -98,7 +107,7 @@ problems/<slug>/
 ```json
 "open": {
   "kind": "sql-visible",
-  "cmd": "python3 repo/run_tests.py"
+  "cmd": "python3 run_tests.py"
 }
 ```
 
@@ -172,7 +181,7 @@ problems/<slug>/
 ```json
 "hidden": {
   "kind": "sql-scenarios",
-  "cmd": "python3 hidden/run_grade.py",
+  "cmd": "python3 run_grade.py",
   "cases": [
     { "id": "basic_all_active",          "weight": 1 },
     { "id": "active_filter_changes_avg", "weight": 2 },
@@ -212,16 +221,16 @@ problems/<slug>/
 
 `dom-style-assert`로 표현 못 하는 검사(뷰포트 전환, 박스 기하, axe-core 등)는 SQL의
 `sql-scenarios`와 같은 방식 — 문제별 `cmd` 그레이더에 위임한다. `open`도 동일하게
-문제별 visible 스크립트를 가리킨다(`sql-visible`이 `repo/run_tests.py`를 가리키는 것과 동형).
+문제별 visible 스크립트를 가리킨다(`sql-visible`이 `run_tests.py`를 가리키는 것과 동형).
 
 ```json
 "open": {
   "kind": "browser-visible",
-  "cmd": "node repo/tests/run_visible.js"
+  "cmd": "node tests/run_visible.js"
 },
 "hidden": {
   "kind": "browser-scenarios",
-  "cmd": "node hidden/run_grade.js",
+  "cmd": "node run_grade.js",
   "cases": [
     { "id": "layout_row",        "weight": 1 },
     { "id": "responsive_stack",  "weight": 2 },
@@ -245,16 +254,16 @@ problems/<slug>/
 ```json
 {
   "schema_version": 2,
-  "id": "range-sum",
+  "id": 1024,
   "title": "구간 합 구하기",
   "type": "algorithm",
   "category": "알고리즘",
   "difficulty": "mid",
   "skills": ["누적합", "자료구조"],
-  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "submission": { "entry": "solution.py", "runtime": "judge-py:base" },
   "open": {
     "kind": "pytest-visible",
-    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+    "cmd": "python3 -m pytest tests/test_visible.py -q --tb=short"
   },
   "hidden": {
     "kind": "pytest-hidden",
@@ -283,20 +292,20 @@ problems/<slug>/
 ```json
 {
   "schema_version": 2,
-  "id": "dept-avg-salary",
+  "id": 2207,
   "title": "부서별 평균 급여",
   "type": "sql",
   "category": "집계 쿼리",
   "difficulty": "basic",
   "skills": ["GROUP BY", "필터링"],
-  "submission": { "entry": "repo/solution.sql", "runtime": "judge-sql:base" },
+  "submission": { "entry": "solution.sql", "runtime": "judge-sql:base" },
   "open": {
     "kind": "sql-visible",
-    "cmd": "python3 repo/run_tests.py"
+    "cmd": "python3 run_tests.py"
   },
   "hidden": {
     "kind": "sql-scenarios",
-    "cmd": "python3 hidden/run_grade.py",
+    "cmd": "python3 run_grade.py",
     "cases": [
       { "id": "basic_all_active",          "weight": 1 },
       { "id": "active_filter_changes_avg", "weight": 2 },
@@ -321,13 +330,13 @@ problems/<slug>/
 ```json
 {
   "schema_version": 2,
-  "id": "flex-card-layout",
+  "id": 3002,
   "title": "카드 리스트 레이아웃",
   "type": "frontend",
   "category": "CSS 레이아웃",
   "difficulty": "basic",
   "skills": ["Flexbox", "반응형"],
-  "submission": { "entry": "repo/solution.css", "runtime": "judge-browser:base" },
+  "submission": { "entry": "solution.css", "runtime": "judge-browser:base" },
   "open": {
     "kind": "css-visible",
     "cmd": "node /runners/run_fe.js --mode=open",

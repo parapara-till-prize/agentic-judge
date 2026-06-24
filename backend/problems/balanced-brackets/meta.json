@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
-  "id": "balanced-brackets",
+  "id": 1031,
   "title": "괄호 짝 맞추기",
   "type": "algorithm",
   "category": "알고리즘",
   "difficulty": "basic",
   "skills": ["스택", "문자열"],
-  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "submission": { "entry": "solution.py", "runtime": "judge-py:base" },
   "open": {
     "kind": "pytest-visible",
-    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+    "cmd": "python3 -m pytest tests/test_visible.py -q --tb=short"
   },
   "hidden": {
     "kind": "pytest-hidden",

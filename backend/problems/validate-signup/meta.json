@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
-  "id": "validate-signup",
+  "id": 1013,
   "title": "회원가입 검증",
   "type": "algorithm",
   "category": "API 구현",
   "difficulty": "mid",
   "skills": ["입력 검증", "정규식"],
-  "submission": { "entry": "repo/solution.py", "runtime": "judge-py:base" },
+  "submission": { "entry": "solution.py", "runtime": "judge-py:base" },
   "open": {
     "kind": "pytest-visible",
-    "cmd": "python3 -m pytest repo/tests/test_visible.py -q --tb=short"
+    "cmd": "python3 -m pytest tests/test_visible.py -q --tb=short"
   },
   "hidden": {
     "kind": "pytest-hidden",
