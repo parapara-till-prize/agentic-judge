@@ -1,0 +1,179 @@
+/* Editable code pane: a transparent <textarea> stacked over a highlighted <pre>, plus a
+   synced line-number gutter. All three layers share identical font metrics + padding so the
+   caret, the highlighted glyphs and the line numbers line up exactly. */
+.codeview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.codeBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-soft);
+}
+.path {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lockNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* shared text metrics — keep gutter / highlight / input byte-for-byte identical */
+.gutter,
+.highlight,
+.input {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  box-sizing: border-box;
+  tab-size: 4;
+}
+
+.gutter {
+  flex-shrink: 0;
+  overflow: hidden;
+  padding-left: 14px;
+  padding-right: 10px;
+  text-align: right;
+  color: var(--text-faint);
+  user-select: none;
+  white-space: pre;
+  border-right: 1px solid var(--border-soft);
+}
+
+.codeArea {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.highlight,
+.input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding-left: 14px;
+  padding-right: 14px;
+  white-space: pre;
+  overflow: auto;
+  border: 0;
+}
+
+.highlight {
+  pointer-events: none;
+  color: var(--text);
+}
+
+.input {
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+  resize: none;
+  outline: none;
+}
+
+.input:read-only {
+  caret-color: transparent;
+  cursor: default;
+}
+
+/* edit / save controls live in the code bar */
+.barActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.editBtn:hover:not(:disabled) {
+  border-color: var(--text-dim);
+}
+.editBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ghostBtn {
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.ghostBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* save control + dirty indicator live in the code bar */
+.saveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-h);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.saveBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.saveBtn.dirty {
+  color: #fff;
+  background: var(--accent, #16a34a);
+  border-color: transparent;
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent, #16a34a);
+  display: inline-block;
+}

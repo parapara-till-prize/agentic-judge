@@ -116,6 +116,27 @@ export function usePostMessage(attemptId) {
   })
 }
 
+export function useSaveFile(attemptId) {
+  // direct file edit -> backend writes it into the attempt workdir (the source of truth),
+  // so local tests + submission pick up the change. Returns the fresh file snapshot.
+  return useMutation({
+    mutationFn: ({ path, content }) =>
+      apiFetch(`/attempts/${attemptId}/files`, {
+        method: 'PUT',
+        body: { path, content },
+      }),
+  })
+}
+
+export function useRunTests(attemptId) {
+  // manual visible-test run -> container executes the problem's test_cmd, returns
+  // {command, output}. Lets a user verify direct edits without waiting on the agent.
+  return useMutation({
+    mutationFn: () =>
+      apiFetch(`/attempts/${attemptId}/run-tests`, { method: 'POST' }),
+  })
+}
+
 export function useSubmit(attemptId) {
   const qc = useQueryClient()
   return useMutation({

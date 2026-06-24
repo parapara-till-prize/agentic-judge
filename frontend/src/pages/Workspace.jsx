@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Folder, Document, CheckmarkFilled, ErrorFilled, Locked } from '@carbon/icons-react'
+import { Folder, Document, CheckmarkFilled, ErrorFilled, Locked, Play } from '@carbon/icons-react'
 import { Badge } from '../components/ui'
 import Markdown from '../components/Markdown'
-import { useProblem, useStartAttempt, useSubmit, useMe } from '../api/queries'
+import CodeEditor from '../components/CodeEditor'
+import { useProblem, useStartAttempt, useSubmit, useSaveFile, useRunTests, useMe } from '../api/queries'
 import { streamMessage } from '../api/stream'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
@@ -52,6 +53,8 @@ export default function Workspace() {
 
   const startMut = useStartAttempt()
   const submitMut = useSubmit(attemptId)
+  const saveMut = useSaveFile(attemptId)
+  const runMut = useRunTests(attemptId)
   const authed = Boolean(me)
 
   const [draft, setDraft] = useState('')
@@ -244,6 +247,32 @@ export default function Workspace() {
     else navigate(`/problem/${id}`)
   }
 
+  // direct edit -> persist to the attempt workdir, then adopt the fresh snapshot so the
+  // viewer/tests reflect exactly what local runs + submit will grade.
+  function saveActiveFile(content) {
+    if (!attemptId || !activePath) return
+    saveMut.mutate(
+      { path: activePath, content },
+      {
+        onSuccess: (d) => {
+          streamFiles(d.files)
+          toast.success('파일을 저장했어요', { description: activePath })
+        },
+        onError: (e) => toast.error('저장하지 못했어요', { description: e.message }),
+      },
+    )
+  }
+
+  // manually run the visible example tests (same cmd the agent uses) — useful when the
+  // agent skips running them, or to verify a direct edit. Feeds the same result panel.
+  function runTests() {
+    if (!attemptId || runMut.isPending || agentBusy) return
+    runMut.mutate(undefined, {
+      onSuccess: (d) => streamTestResult(d), // {command, output}
+      onError: (e) => toast.error('테스트를 실행하지 못했어요', { description: e.message }),
+    })
+  }
+
   function submit() {
     if (!attemptId || submitMut.isPending) return
     submitMut.mutate(undefined, {
@@ -384,7 +413,7 @@ export default function Workspace() {
                     send()
                   }
                 }}
-                placeholder="에이전트에게 지시… (코드 직접 작성 불가)"
+                placeholder="에이전트에게 지시…"
               />
               <button
                 className="btn btn--dark"
@@ -395,7 +424,7 @@ export default function Workspace() {
               </button>
             </div>
             <div className={styles.chatLock}>
-              코드 편집은 잠겨 있어요. 변경은 에이전트를 통해서만 가능해요.
+              에이전트에게 지시하거나, 오른쪽에서 코드를 직접 편집해 저장할 수 있어요.
             </div>
           </div>
         </div>
@@ -410,11 +439,8 @@ export default function Workspace() {
 
         {/* RIGHT: files + code + tests */}
         <div className={styles.pane} ref={rightPaneRef}>
-          <div className={styles.paneHead} style={{ justifyContent: 'space-between' }}>
+          <div className={styles.paneHead}>
             <span>파일</span>
-            <span style={{ fontWeight: 400, color: 'var(--text-faint)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Locked size={13} /> 읽기 전용
-            </span>
           </div>
           <div className={styles.filetree} style={{ height: treeH }}>
             <div className={styles.ftRoot}>
@@ -437,21 +463,17 @@ export default function Workspace() {
             aria-orientation="horizontal"
           />
 
-          {/* code viewer */}
-          <div className={styles.codeview}>
-            <div className={styles.codeBar}>
-              <span>{activePath ?? '—'}</span>
-              <Locked size={13} style={{ color: 'var(--text-dim)' }} />
-            </div>
-            <pre>
-              {(activeFile?.content ?? '').split('\n').map((line, i) => (
-                <div key={i}>
-                  <span className="tok-ln">{String(i + 1).padStart(2, ' ')}</span>
-                  {'  '}
-                  <span>{line}</span>
-                </div>
-              ))}
-            </pre>
+          {/* code editor — direct edits land in the attempt workdir (the source of truth) */}
+          <CodeEditor
+            key={activePath ?? '∅'}
+            path={activePath}
+            content={activeFile?.content ?? ''}
+            locked={agentBusy}
+            saving={saveMut.isPending}
+            onSave={saveActiveFile}
+          />
+          <div className={styles.codeHint}>
+            직접 편집해 저장하면 로컬 테스트·제출에 그대로 반영돼요.
           </div>
 
           {/* resizer: code viewer | tests */}
@@ -466,16 +488,14 @@ export default function Workspace() {
           <div className={styles.tests} style={{ height: testsH }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-h)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-h)' }}>
                   예제 테스트
                 </span>
-                <span className={styles.tagPub}>공개</span>
                 {testResult?.ran && (
                   <span
                     className="mono"
                     style={{
-                      marginLeft: 'auto',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: testResult.ok ? 'var(--accent)' : 'var(--danger)',
                     }}
@@ -483,6 +503,16 @@ export default function Workspace() {
                     {testResult.passed} / {testResult.total}
                   </span>
                 )}
+                <button
+                  className={styles.runBtn}
+                  style={{ marginLeft: 'auto' }}
+                  onClick={runTests}
+                  disabled={!attemptId || runMut.isPending || agentBusy}
+                  title="예제 테스트 실행"
+                >
+                  <Play size={13} />
+                  {runMut.isPending ? '실행 중…' : '실행'}
+                </button>
               </div>
               {testResult?.ran ? (
                 <div className={styles.testResult}>
@@ -508,19 +538,19 @@ export default function Workspace() {
               )}
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-h)' }}>
-                  히든 테스트
-                </span>
-                <span className={styles.tagHidden}>가려짐</span>
-              </div>
-              <div className={styles.hiddenBox}>
-                <Locked size={18} style={{ color: 'var(--text-faint)' }} />
-                <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
-                  제출 후 공개돼요
-                </div>
-              </div>
+            <div
+              style={{
+                borderTop: '1px solid var(--border-soft)',
+                paddingTop: 10,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12.5,
+                color: 'var(--text-dim)',
+              }}
+            >
+              <Locked size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+              예제 테스트를 통과해도 정답이 보장되진 않아요. 제출은 가려진 테스트로 채점돼요.
             </div>
           </div>
         </div>
