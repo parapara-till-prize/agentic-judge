@@ -32,6 +32,7 @@ import auth  # noqa: E402
 import grade  # noqa: E402
 import scoring  # noqa: E402
 from db import Attempt, Submission, engine, init_db  # noqa: E402
+import sandbox  # noqa: E402
 from sandbox import MAX_OUTPUT  # noqa: E402
 
 PROBLEMS = BASE / "problems"
@@ -60,6 +61,11 @@ class StartAttempt(BaseModel):
 
 class Message(BaseModel):
     text: str
+
+
+class FileSave(BaseModel):
+    path: str
+    content: str
 
 
 class Credentials(BaseModel):
@@ -216,6 +222,60 @@ def start_attempt(body: StartAttempt, user: str = Depends(auth.get_current_user)
         "statement": statement,
         "files": _workspace_files(attempt_id),
     }
+
+
+@app.put("/attempts/{attempt_id}/files")
+def save_file(attempt_id: str, body: FileSave, user: str = Depends(auth.get_current_user)):
+    """Overwrite one existing workspace file with user-edited content.
+
+    The attempt workdir is the source of truth (it's what run_command mounts and what submit
+    grades), so a direct edit here is picked up by both local tests and submission — no agent
+    round-trip needed. Restricted to the owner, to paths that stay inside the workdir, and to
+    files that already exist (no creating arbitrary paths).
+    """
+    with Session(engine) as session:
+        attempt = session.get(Attempt, attempt_id)
+        if not attempt:
+            raise HTTPException(404, "unknown attempt")
+        if attempt.user != user:
+            raise HTTPException(403, "not your attempt")
+
+    wd = (ATTEMPTS / attempt_id).resolve()
+    target = (wd / body.path).resolve()
+    if wd != target and wd not in target.parents:
+        raise HTTPException(400, "invalid path")  # path escapes the workdir
+    if not target.is_file():
+        raise HTTPException(404, f"no such file: {body.path}")
+
+    target.write_text(body.content)
+    return {"files": _workspace_files(attempt_id)}
+
+
+@app.post("/attempts/{attempt_id}/run-tests")
+def run_tests(attempt_id: str, user: str = Depends(auth.get_current_user)):
+    """Run the problem's visible test command in a disposable container, on demand.
+
+    Same command + image the agent uses (meta.runtime), so a user who edited files directly
+    can verify them without waiting for the agent to decide to run tests. Read-only w.r.t. the
+    workdir — it only executes the visible suite. Returns {command, output}; the client parses
+    it into the same pass/fail panel a run_command result would produce.
+    """
+    with Session(engine) as session:
+        attempt = session.get(Attempt, attempt_id)
+        if not attempt:
+            raise HTTPException(404, "unknown attempt")
+        if attempt.user != user:
+            raise HTTPException(403, "not your attempt")
+
+    _slug, meta = _resolve(attempt.problem_id)
+    runtime = meta.get("runtime", {})
+    test_cmd = runtime.get("test_cmd")
+    if not test_cmd:
+        raise HTTPException(400, "this problem has no visible test command")
+    image = runtime.get("image") or "judge-py:base"
+
+    output = sandbox.run_in_container(ATTEMPTS / attempt_id, test_cmd, image)
+    return {"command": test_cmd, "output": output}
 
 
 def _sse(obj: dict) -> str:
