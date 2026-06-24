@@ -619,11 +619,32 @@ def _save_frontend(prob: Path, files: dict) -> None:
 # Meta builder
 # ---------------------------------------------------------------------------
 
+_ID_BASE = {"algorithm": 1000, "sql": 2000, "frontend": 3000}
+
+
+def _next_id(problem_type: str) -> int:
+    """기존 problems/ 디렉터리를 스캔해 타입별 범위(algorithm=1xxx, sql=2xxx,
+    frontend=3xxx)의 다음 정수 ID를 반환한다. 기존 문제가 없으면 base+1."""
+    base = _ID_BASE.get(problem_type, 4000)
+    max_id = base
+    for d in PROBLEMS.iterdir():
+        mf = d / "meta.json"
+        if not mf.exists():
+            continue
+        try:
+            pid = json.loads(mf.read_text(encoding="utf-8")).get("id")
+            if isinstance(pid, int) and base <= pid < base + 1000:
+                max_id = max(max_id, pid)
+        except (json.JSONDecodeError, OSError):
+            continue
+    return max_id + 1
+
+
 def build_meta(slug: str, title: str, problem_type: str, difficulty: str,
                skills: list, hidden_cases: list) -> dict:
     base = {
         "schema_version": 2,
-        "id": slug,
+        "id": _next_id(problem_type),
         "title": title,
         "type": problem_type,
         "difficulty": difficulty,
