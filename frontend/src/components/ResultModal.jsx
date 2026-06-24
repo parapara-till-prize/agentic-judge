@@ -55,15 +55,22 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
     if (!submit) return null
 
     const { passed, total, score, turns, tokens, axes = [] } = submit
+    // passed/total are the weighted score (drives the ring + accuracy %); *_cases are the raw
+    // test counts shown to the user. Fall back to the weighted pair for pre-weighting rows.
+    const passedCases = submit.passed_cases ?? passed
+    const totalCases = submit.total_cases ?? total
     const title = problem?.title ?? '제출 결과'
     const criteria = axesToCriteria(mergeEfficiencyAxes(axes))
     const accuracyCrit = criteria.find((c) => c.key === 'accuracy')
     const effCrits = criteria.filter((c) => c.key !== 'accuracy')
-    const failCount = total - passed
+    const failCount = totalCases - passedCases
     // accuracy is the gate: no test passed -> efficiency is moot (backend already zeroes it).
     const gated = total > 0 && passed === 0
     const verdict =
         total > 0 && passed === total ? '통과' : passed > 0 ? '부분 통과' : '미통과'
+    // verdict badge tone matches the progress-bar colors: 통과→green, 부분 통과→amber, 미통과→red.
+    const verdictTone =
+        total > 0 && passed === total ? 'ok' : passed > 0 ? 'warn' : 'danger'
     // ring fills proportional to the score, colored by the same thresholds as the bars.
     const scoreFrac = Math.max(0, Math.min(1, MAX_SCORE ? score / MAX_SCORE : 0))
     const ringFill = scoreColor(scoreFrac)
@@ -94,14 +101,14 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
                                 </div>
                             </div>
                             <div style={{ flex: 1, minWidth: 240 }}>
-                                <div className={`${styles.passLabel} ${gated ? styles.passLabelFail : ''}`}>
+                                <span className={`${styles.passLabel} ${styles[verdictTone]}`}>
                                     {verdict}
-                                </div>
+                                </span>
                                 <Dialog.Title asChild>
                                     <div className={styles.title}>{title}</div>
                                 </Dialog.Title>
                                 <div className={styles.headStats}>
-                                    <Stat label="히든 통과" value={`${passed} / ${total}`} />
+                                    <Stat label="히든 통과" value={`${passedCases} / ${totalCases}`} />
                                     <Stat label="사용 턴" value={turns} />
                                     <Stat label="사용 토큰" value={fmtTokens(tokens)} />
                                 </div>
@@ -115,14 +122,14 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
                                 subtitle="채점 게이트"
                                 aside={
                                     <span className="mono" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>
-                                        {passed} 통과 ·{' '}
+                                        {passedCases} 통과 ·{' '}
                                         <span style={{ color: 'var(--danger)' }}>{failCount} 실패</span>
                                     </span>
                                 }
                             >
                                 <BarRow c={accuracyCrit} />
                                 <div className={styles.hiddenNote} style={{ marginTop: 12 }}>
-                                    {total === 0 ? (
+                                    {totalCases === 0 ? (
                                         '채점할 히든 테스트가 없어요. 상세 입력은 비공개예요.'
                                     ) : failCount === 0 ? (
                                         '히든 테스트를 전부 통과했어요. 상세 입력은 비공개예요.'
