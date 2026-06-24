@@ -44,7 +44,7 @@ export default function Home() {
     const list = (problems ?? []).map((p) => ({
       ...p,
       rate: (p.solved_rate ?? 0) * 100,
-      solved: false, // per-user solved status isn't on the list endpoint yet
+      solved: p.solved ?? false, // per-user solved status from /problems (false if logged out)
     }))
     const filtered = list.filter((p) => {
       if (track !== 'all' && p.domain !== track) return false

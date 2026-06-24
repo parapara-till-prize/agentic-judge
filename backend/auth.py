@@ -81,3 +81,13 @@ def get_current_user(session: str = Cookie(default=None, alias=SESSION_COOKIE)) 
     if not row:
         raise HTTPException(401, "invalid session")
     return row.username
+
+
+def get_optional_user(session: str = Cookie(default=None, alias=SESSION_COOKIE)):
+    """Like get_current_user but returns None instead of 401 — for public routes that show
+    extra per-user info (e.g. solved status) only when logged in."""
+    if not session:
+        return None
+    with Session(engine) as s:
+        row = s.get(UserSession, session)
+    return row.username if row else None

@@ -40,6 +40,7 @@ export function useLogin() {
       apiFetch('/auth/login', { method: 'POST', body: { username, password } }),
     onSuccess: (data) => {
       qc.setQueryData(keys.me, data)
+      qc.invalidateQueries() // identity changed -> refetch user-scoped data (solved status, etc.)
       toast.success('성공적으로 로그인했어요')
     },
   })
@@ -52,6 +53,7 @@ export function useRegister() {
       apiFetch('/auth/register', { method: 'POST', body: { username, password } }),
     onSuccess: (data) => {
       qc.setQueryData(keys.me, data)
+      qc.invalidateQueries() // identity changed -> refetch user-scoped data (solved status, etc.)
       toast.success('성공적으로 회원가입했어요')
     },
   })

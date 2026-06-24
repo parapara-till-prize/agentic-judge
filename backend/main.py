@@ -191,7 +191,16 @@ def _resolve(problem_id: str) -> tuple:
     return hit
 
 
-def _problem_card(pid: str, slug: str, m: dict, session: Session) -> dict:
+def _user_solved_ids(user: str, session: Session) -> set:
+    """Public problem ids the user has fully passed (passed == total > 0). Empty when logged
+    out. One query backs the whole list so cards don't each hit the DB."""
+    if not user:
+        return set()
+    subs = session.exec(select(Submission).where(Submission.user == user)).all()
+    return {s.problem_id for s in subs if s.total > 0 and s.passed == s.total}
+
+
+def _problem_card(pid: str, slug: str, m: dict, session: Session, solved: bool = False) -> dict:
     stats = _problem_stats(pid, session)  # submissions are keyed by the public id
     return {
         "id": m["id"],
@@ -201,24 +210,27 @@ def _problem_card(pid: str, slug: str, m: dict, session: Session) -> dict:
         "category": m.get("category", ""),
         "domain": m.get("type", "algorithm"),
         "skills": m.get("skills", []),
+        "solved": solved,  # per-user: did the current user fully pass this? (false if logged out)
         **stats,
     }
 
 
 @app.get("/problems")
-def list_problems():
+def list_problems(user: str = Depends(auth.get_optional_user)):
     out = []
     with Session(engine) as session:
+        solved_ids = _user_solved_ids(user, session)
         for pid, (slug, m) in sorted(_index().items(), key=lambda kv: kv[0]):
-            out.append(_problem_card(pid, slug, m, session))
+            out.append(_problem_card(pid, slug, m, session, solved=pid in solved_ids))
     return out
 
 
 @app.get("/problems/{problem_id}")
-def get_problem(problem_id: str):
+def get_problem(problem_id: str, user: str = Depends(auth.get_optional_user)):
     slug, m = _resolve(problem_id)
     with Session(engine) as session:
-        card = _problem_card(str(m["id"]), slug, m, session)
+        solved_ids = _user_solved_ids(user, session)
+        card = _problem_card(str(m["id"]), slug, m, session, solved=str(m["id"]) in solved_ids)
     statement_file = PROBLEMS / slug / "statement.md"
     card["statement"] = statement_file.read_text() if statement_file.exists() else ""
     return card
