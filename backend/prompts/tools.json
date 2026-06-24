@@ -23,7 +23,7 @@
     "type": "function",
     "function": {
       "name": "write_file",
-      "description": "Create or overwrite a file with the given content.",
+      "description": "Create or overwrite a file with the given content. Put real line breaks in `content`; do NOT escape newlines as the two characters backslash-n.",
       "parameters": {
         "type": "object",
         "properties": {

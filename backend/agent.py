@@ -88,6 +88,27 @@ def extract_text_tool_calls(content: str):
     return calls, text
 
 
+def _unescape_if_flattened(content: str) -> str:
+    r"""Undo a weak model double-escaping a whole file in the JSON tool args.
+
+    When the model emits `\\n` instead of `\n`, json.loads decodes it to a literal two-char
+    `\n` and the entire file lands on one physical line with no real newlines. We repair only
+    that exact shape — NO real newline present but literal `\n` is — so a correctly written
+    multi-line file (real newlines) or a rare genuine one-liner is never touched. The only
+    false positive is a true single-line file that intends a literal `\n` inside a string.
+    """
+    if "\n" not in content and "\\n" in content:
+        return content.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\t", "\t")
+    return content
+
+
+def _repair_args(name: str, args: dict) -> dict:
+    """Normalize tool args before use/storage. Currently: un-flatten write_file content."""
+    if name == "write_file" and isinstance(args.get("content"), str):
+        args["content"] = _unescape_if_flattened(args["content"])
+    return args
+
+
 def _tool_label(name: str, args: dict) -> str:
     """Compact label the frontend renders on a tool-call chip."""
     if name == "read_file":
@@ -151,11 +172,14 @@ def stream_turn(
                     args = json.loads(tc.function.arguments or "{}")
                 except json.JSONDecodeError:
                     args = {}
-                calls.append((tc.id, tc.function.name, args))
+                calls.append((tc.id, tc.function.name, _repair_args(tc.function.name, args)))
             display_text = msg.content or ""
         else:
             recovered, display_text = extract_text_tool_calls(msg.content or "")
-            calls = [(f"call_{uuid.uuid4().hex[:8]}", name, args) for name, args in recovered]
+            calls = [
+                (f"call_{uuid.uuid4().hex[:8]}", name, _repair_args(name, args))
+                for name, args in recovered
+            ]
 
         # Record the assistant message (clean content + structured tool_calls) so the
         # history stays well-formed and the model keeps seeing proper tool-calling shape.
