@@ -206,3 +206,70 @@
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* ===== submit-result modal shell (Radix Dialog) ===== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+  animation: result-overlay-in 0.16s ease;
+  z-index: 60;
+}
+.modalContent {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(94vw, 820px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+  overflow: hidden;
+  animation: result-content-in 0.18s ease;
+  z-index: 61;
+}
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+}
+.modalClose {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  z-index: 1;
+}
+.modalClose:hover {
+  color: var(--text-h);
+}
+
+@keyframes result-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes result-content-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

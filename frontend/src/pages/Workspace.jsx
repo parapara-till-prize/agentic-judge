@@ -5,6 +5,7 @@ import Markdown from '../components/Markdown'
 import { useProblem, useStartAttempt, usePostMessage, useSubmit, useMe } from '../api/queries'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
+import ResultModal from '../components/ResultModal'
 import styles from './Workspace.module.css'
 
 const TOOL_CLASS = {
@@ -33,6 +34,7 @@ export default function Workspace() {
 
   const [draft, setDraft] = useState('')
   const [selectedPath, setSelectedPath] = useState(null)
+  const [resultOpen, setResultOpen] = useState(false)
   const chatEndRef = useRef(null)
   const startedRef = useRef(null)
 
@@ -97,7 +99,7 @@ export default function Workspace() {
     submitMut.mutate(undefined, {
       onSuccess: (d) => {
         setSubmitResult(d)
-        navigate(`/result/${id}`)
+        setResultOpen(true)
       },
     })
   }
@@ -315,6 +317,8 @@ export default function Workspace() {
           </div>
         </div>
       </div>
+
+      <ResultModal open={resultOpen} onOpenChange={setResultOpen} problemId={id} />
     </div>
   )
 }
