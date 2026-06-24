@@ -27,7 +27,19 @@ def test_frontend_visible_cmd_unchanged():
     assert meta["open"]["cmd"] == "node tests/run_visible.js", meta["open"]["cmd"]
 
 
+def test_build_meta_uses_shared_fe_constants():
+    # build_meta와 _validate_frontend가 같은 명령 규칙을 쓰도록 상수로 단일화됐는지 확인.
+    meta = generate.build_meta(
+        "demo", "데모", "frontend", "mid", ["CSS"],
+        [{"id": "check_a", "weight": 1}],
+    )
+    assert meta["open"]["cmd"] == generate._FE_VISIBLE_CMD
+    assert meta["hidden"]["cmd"] == generate._FE_GRADE_CMD
+    assert generate._FE_GRADE_CMD == "node run_grade.js"
+
+
 if __name__ == "__main__":
     test_frontend_hidden_cmd_is_root_relative()
     test_frontend_visible_cmd_unchanged()
+    test_build_meta_uses_shared_fe_constants()
     print("OK")

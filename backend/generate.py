@@ -360,6 +360,11 @@ _REQUIRED_FIELDS = {
                   "model_answer_css", "hidden_cases"},
 }
 
+# 프론트엔드 명령 규칙(한 곳): 비짓블은 attempt 루트(repo/ 내용물)에서, 히든은 grade.py가
+# hidden/ 트리를 채점폴더 루트에 펼친 뒤 실행한다 → 둘 다 루트 기준 경로.
+_FE_VISIBLE_CMD = "node tests/run_visible.js"
+_FE_GRADE_CMD = "node run_grade.js"
+
 
 # ---------------------------------------------------------------------------
 # Core generation
@@ -466,15 +471,15 @@ def _validate_frontend(generated: dict) -> dict:
         tests = work_dir / "tests"
         tests.mkdir()
         (tests / "run_visible.js").write_text(generated["run_visible_js"], encoding="utf-8")
-        hidden = work_dir / "hidden"
-        hidden.mkdir()
-        (hidden / "run_grade.js").write_text(generated["run_grade_js"], encoding="utf-8")
+        # grade.py는 hidden/ 트리를 채점폴더 루트에 펼친다 — 검증도 동일 레이아웃으로 맞춰
+        # 검증 통과 = 실제 채점 통과를 보장한다.
+        (work_dir / "run_grade.js").write_text(generated["run_grade_js"], encoding="utf-8")
         _chmod_r(work_dir)
 
         visible_out = sandbox.run_in_container(
-            work_dir, "node tests/run_visible.js 2>&1", "judge-browser:base")
+            work_dir, f"{_FE_VISIBLE_CMD} 2>&1", "judge-browser:base")
         hidden_out = sandbox.run_in_container(
-            work_dir, "node hidden/run_grade.js 2>&1", "judge-browser:base")
+            work_dir, f"{_FE_GRADE_CMD} 2>&1", "judge-browser:base")
 
         visible_ok = "FAIL" not in visible_out and "PASS" in visible_out
         hidden_ok = _grade_all_passed(hidden_out)
@@ -630,7 +635,7 @@ def build_meta(slug: str, title: str, problem_type: str, difficulty: str,
     elif problem_type == "frontend":
         base["category"] = "프론트엔드"
         base["submission"] = {"entry": "index.html", "runtime": "judge-browser:base"}
-        base["open"] = {"kind": "browser-visible", "cmd": "node tests/run_visible.js"}
-        base["hidden"].update({"kind": "browser-scenarios", "cmd": "node run_grade.js"})
+        base["open"] = {"kind": "browser-visible", "cmd": _FE_VISIBLE_CMD}
+        base["hidden"].update({"kind": "browser-scenarios", "cmd": _FE_GRADE_CMD})
 
     return base
