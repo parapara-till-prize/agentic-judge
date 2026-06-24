@@ -1,7 +1,8 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Close } from '@carbon/icons-react'
-import { useProblem } from '../api/queries'
+import { useProblem, useFeedback } from '../api/queries'
 import { useSessionStore } from '../store/sessionStore'
 import styles from '../styles/pages/Result.module.css'
 
@@ -51,6 +52,18 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
     const navigate = useNavigate()
     const { data: problem } = useProblem(problemId)
     const submit = useSessionStore((s) => s.submitResult)
+    const attemptId = useSessionStore((s) => s.attemptId)
+    const fbMut = useFeedback(attemptId)
+
+    // Auto-request AI feedback whenever the modal opens for a submit result. Re-fires on a
+    // re-submit (new `submit` object) or a reopen. fbMut is intentionally not a dep (it's a
+    // fresh object each render — including it would loop).
+    useEffect(() => {
+        if (!open || !submit || !attemptId) return
+        fbMut.reset()
+        fbMut.mutate(submit.failed ?? [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, submit, attemptId])
 
     if (!submit) return null
 
@@ -158,9 +171,56 @@ export default function ResultModal({ open, onOpenChange, problemId }) {
                             </Section>
                         )}
 
-                        {/* grading feedback — wired to the feedback API later; empty for now */}
-                        <Section title="채점 피드백">
-                            <div className={styles.coachingEmpty}>곧 제공돼요.</div>
+                        {/* AI 채점 피드백 — 모달이 열리면 자동 요청, 응답까지 로딩 표시 */}
+                        <Section
+                            title="AI 채점 피드백"
+                            subtitle="전반 평가 + 실패한 테스트별 힌트"
+                            aside={
+                                !fbMut.isPending && (fbMut.isError || fbMut.data) ? (
+                                    <button
+                                        className={styles.retryBtn}
+                                        onClick={() => {
+                                            fbMut.reset()
+                                            fbMut.mutate(submit.failed ?? [])
+                                        }}
+                                    >
+                                        ↻ 다시 받기
+                                    </button>
+                                ) : null
+                            }
+                        >
+                            {fbMut.isPending ? (
+                                <div className={styles.fbLoading}>
+                                    <span className={styles.spinner} aria-hidden />
+                                    AI가 코드를 분석하고 있어요…
+                                </div>
+                            ) : fbMut.isError ? (
+                                <div className={styles.coachingEmpty}>
+                                    피드백을 불러오지 못했어요. {fbMut.error?.message}
+                                </div>
+                            ) : fbMut.data ? (
+                                <div className={styles.fb}>
+                                    {fbMut.data.overall && (
+                                        <div className={styles.fbOverall}>{fbMut.data.overall}</div>
+                                    )}
+                                    {fbMut.data.feedbacks?.length > 0 ? (
+                                        <div className={styles.fbList}>
+                                            {fbMut.data.feedbacks.map((f, i) => (
+                                                <div key={i} className={styles.fbItem}>
+                                                    <div className={`mono ${styles.fbTest}`}>{f.test}</div>
+                                                    <div className={styles.fbHint}>{f.hint}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className={styles.hiddenNote}>
+                                            실패한 히든 테스트가 없어 세부 힌트는 없어요.
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className={styles.coachingEmpty}>곧 제공돼요.</div>
+                            )}
                         </Section>
                     </div>
 

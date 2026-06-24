@@ -145,6 +145,85 @@
   font-size: 12.5px;
   color: var(--text-dim);
 }
+
+/* --- AI feedback section (loading spinner + result cards) --- */
+.fbLoading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: fb-spin 0.7s linear infinite;
+}
+@keyframes fb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.fb {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fbOverall {
+  padding: 12px 14px;
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-h);
+}
+.fbList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fbItem {
+  padding: 10px 13px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+.fbTest {
+  margin-bottom: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--danger);
+  word-break: break-all;
+}
+.fbHint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.retryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: var(--chip-bg);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.retryBtn:hover {
+  color: var(--text-h);
+}
+
 .naTag {
   font-size: 11px;
   font-weight: 700;

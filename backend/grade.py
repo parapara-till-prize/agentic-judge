@@ -23,20 +23,32 @@ import sandbox
 BASE = Path(__file__).parent
 
 # Injected into grade_dir for pytest-hidden/concurrency problems that have no run_grade.py.
-# Runs test_hidden.py with pytest -v, counts PASSED/FAILED/ERROR lines, prints GRADE: JSON.
+# Runs test_hidden.py via a pytest plugin (TTY-independent, unlike scraping -v output) that
+# records the pass count, total, and the node id of every failed case, then prints GRADE: JSON.
+# Same collector shape the custom hidden/run_grade.py files use, so `failed` is uniform.
 _PYTEST_GRADE_SCRIPT = """\
-import subprocess, json, sys
-from pathlib import Path
+import json
+import pytest
 
-r = subprocess.run(
-    [sys.executable, "-m", "pytest", "test_hidden.py", "-v", "--tb=no"],
-    capture_output=True, text=True, cwd=Path(__file__).parent,
-)
-out = r.stdout + r.stderr
-lines = out.splitlines()
-passed = sum(1 for l in lines if l.strip().endswith("PASSED"))
-failed = sum(1 for l in lines if l.strip().endswith(("FAILED", "ERROR")))
-print("GRADE:" + json.dumps({"passed": passed, "total": passed + failed}))
+
+class _Collector:
+    def __init__(self):
+        self.passed = 0
+        self.total = 0
+        self.failed = []
+
+    def pytest_runtest_logreport(self, report):
+        if report.when == "call":
+            self.total += 1
+            if report.passed:
+                self.passed += 1
+            else:
+                self.failed.append(report.nodeid.split("::")[-1])
+
+
+_c = _Collector()
+pytest.main(["test_hidden.py", "-q", "--tb=no", "-p", "no:cacheprovider"], plugins=[_c])
+print("GRADE:" + json.dumps({"passed": _c.passed, "total": _c.total, "failed": _c.failed}))
 """
 
 PROBLEMS = BASE / "problems"
@@ -69,10 +81,15 @@ def _resolve(problem_id: str):
 
 
 def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
-    """Grade one attempt against its hidden suite. Returns {passed, total}."""
+    """Grade one attempt against its hidden suite. Returns {passed, total, failed}.
+
+    `failed` is the list of failed case ids (node names) — pytest-based graders report them;
+    other kinds (sql/browser) may omit them, in which case it's []. It feeds the AI feedback
+    route (one no-spoiler hint per failed case); scoring only uses passed/total.
+    """
     hit = _resolve(problem_id)
     if not hit:
-        return {"passed": 0, "total": 0}
+        return {"passed": 0, "total": 0, "failed": []}
     slug, meta = hit
     image = (meta.get("submission") or {}).get("runtime") or "judge-py:base"
     hidden = meta.get("hidden") or {}
@@ -89,7 +106,7 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     workdir = ATTEMPTS / attempt_id
     hidden_dir = PROBLEMS / slug / "hidden"
     if not workdir.exists() or not hidden_dir.exists():
-        return {"passed": 0, "total": 0}
+        return {"passed": 0, "total": 0, "failed": []}
 
     # throwaway grading dir; world-readable so the unprivileged container user can read it
     grade_dir = ATTEMPTS / f"{attempt_id}__grade_{uuid.uuid4().hex[:8]}"
@@ -135,14 +152,19 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
 
     m = re.search(r"GRADE:(\{.*\})", out)
     if not m:
-        return {"passed": 0, "total": defined_total}
+        return {"passed": 0, "total": defined_total, "failed": []}
     try:
         data = json.loads(m.group(1))
         passed = int(data.get("passed", 0))
         total = int(data.get("total", 0))
+        failed = [str(x) for x in (data.get("failed") or [])]
     except (json.JSONDecodeError, TypeError, ValueError):
-        return {"passed": 0, "total": defined_total}
+        return {"passed": 0, "total": defined_total, "failed": []}
 
     # meta.json hidden.cases 개수가 권위있는 total — pytest 수집 실패 시에도 올바른 분모 유지
     authoritative_total = defined_total or total
-    return {"passed": min(passed, authoritative_total), "total": authoritative_total}
+    return {
+        "passed": min(passed, authoritative_total),
+        "total": authoritative_total,
+        "failed": failed,
+    }
