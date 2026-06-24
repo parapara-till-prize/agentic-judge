@@ -360,6 +360,7 @@ def submit(attempt_id: str):
         slug, meta = _resolve(attempt.problem_id)
         result = grade.run_hidden_tests(attempt_id, slug)
         passed, total = result["passed"], result["total"]
+        passed_cases, total_cases = result["passed_cases"], result["total_cases"]
         scored = scoring.evaluate(
             meta, passed, total, attempt.turns, attempt.tokens
         )
@@ -380,15 +381,18 @@ def submit(attempt_id: str):
         turns, tokens = attempt.turns, attempt.tokens
 
     if total and passed == total:
-        feedback = f"전체 통과 — 히든 {passed}/{total}. 효율 점수 반영됨."
+        feedback = f"전체 통과 — 히든 {passed_cases}/{total_cases} 케이스 (배점 {passed}/{total}). 효율 점수 반영됨."
     elif total:
-        feedback = f"히든 {passed}/{total} 통과. 실패 케이스의 경계 조건을 점검하세요."
+        fail = total_cases - passed_cases
+        feedback = f"히든 {passed_cases}/{total_cases} 케이스 통과 (배점 {passed}/{total}). 실패 {fail}개의 경계 조건을 점검하세요."
     else:
         feedback = "이 문제에는 히든 테스트가 없습니다."
 
     return {
         "passed": passed,
         "total": total,
+        "passed_cases": passed_cases,
+        "total_cases": total_cases,
         "score": points,
         "turns": turns,
         "tokens": tokens,

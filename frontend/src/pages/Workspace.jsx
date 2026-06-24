@@ -282,8 +282,10 @@ export default function Workspace() {
         setSubmitResult(d)
         setResultOpen(true)
         if (d.total > 0) {
+          const pc = d.passed_cases ?? d.passed
+          const tc = d.total_cases ?? d.total
           toast.success('성공적으로 제출했어요', {
-            description: `채점 결과 ${d.score}점 · 히든 테스트 ${d.passed}/${d.total} 통과`,
+            description: `채점 결과 ${d.score}점 · 히든 테스트 ${pc}/${tc} 통과`,
           })
         }
       },

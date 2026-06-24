@@ -150,7 +150,9 @@
 .saveBtn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  min-width: 84px;
   padding: 3px 10px;
   font-family: var(--mono);
   font-size: 11px;
@@ -169,11 +171,4 @@
   color: #fff;
   background: var(--accent, #16a34a);
   border-color: transparent;
-}
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent, #16a34a);
-  display: inline-block;
 }

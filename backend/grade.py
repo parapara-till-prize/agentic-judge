@@ -3,13 +3,15 @@
 Domain-agnostic. At submit time we build a throwaway grading copy = the attempt's solution
 files (minus visible tests) + the problem's `hidden/` tree overlaid at the root, then run
 the problem's `runtime.grade_cmd` inside its `runtime.image` (the same locked-down
-container the agent uses). The harness prints one line:
+container the agent uses). The harness prints one line naming which CASE IDS passed:
 
-    GRADE:{"passed": <int>, "total": <int>}
+    GRADE:{"passed_ids": ["case_a", "case_b", ...]}
 
-The host only parses that marker — it never knows whether grading was pytest, a SQL diff,
-or a headless-browser assertion suite. Hidden files never touch the attempt workdir, so the
-agent can't see or game them. See docs/multi-domain.md.
+The host maps those ids to meta.json hidden.cases weights, so weighting lives in one place
+and is identical across pytest / SQL / browser graders. It never knows which engine ran. A
+legacy aggregate GRADE:{"passed": <int>, "total": <int>} is still accepted (count-based, no
+weighting). Hidden files never touch the attempt workdir, so the agent can't see or game
+them. See docs/multi-domain.md.
 """
 import json
 import os
@@ -23,9 +25,11 @@ import sandbox
 BASE = Path(__file__).parent
 
 # Injected into grade_dir for pytest-hidden problems that have no run_grade.py.
-# Counts results via a pytest collector plugin (report.when == "call") rather than scraping
-# stdout — string-matching pytest's output is fragile (e.g. `-v` appends `[ 16%]` so a line
-# never ends in "PASSED"). Prints GRADE: JSON. Mirrors the shipped run_grade.py graders.
+# Reports the set of PASSED test ids via a pytest collector plugin (report.when == "call")
+# rather than scraping stdout — string-matching pytest's output is fragile (e.g. `-v` appends
+# `[ 16%]` so a line never ends in "PASSED"). The host (run_hidden_tests) maps those ids to
+# meta.json weights, so weighting lives in one place and works for every domain. Prints
+# GRADE:{"passed_ids": [...]}.
 _PYTEST_GRADE_SCRIPT = """\
 import json
 import pytest
@@ -33,19 +37,16 @@ import pytest
 
 class _Collector:
     def __init__(self):
-        self.passed = 0
-        self.total = 0
+        self.passed_ids = []
 
     def pytest_runtest_logreport(self, report):
-        if report.when == "call":
-            self.total += 1
-            if report.passed:
-                self.passed += 1
+        if report.when == "call" and report.passed:
+            self.passed_ids.append(report.nodeid.split("::")[-1].split("[")[0])
 
 
 _c = _Collector()
 pytest.main(["test_hidden.py", "-q", "--tb=no", "-p", "no:cacheprovider"], plugins=[_c])
-print("GRADE:" + json.dumps({"passed": _c.passed, "total": _c.total}))
+print("GRADE:" + json.dumps({"passed_ids": _c.passed_ids}))
 """
 
 PROBLEMS = BASE / "problems"
@@ -77,11 +78,21 @@ def _resolve(problem_id: str):
     return slug, json.loads((PROBLEMS / slug / "meta.json").read_text(encoding="utf-8"))
 
 
+def _zero() -> dict:
+    return {"passed": 0, "total": 0, "passed_cases": 0, "total_cases": 0}
+
+
 def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
-    """Grade one attempt against its hidden suite. Returns {passed, total}."""
+    """Grade one attempt against its hidden suite.
+
+    Returns {passed, total, passed_cases, total_cases}: passed/total are the weighted
+    score (sum of meta.json hidden.cases weights) that drives accuracy; passed_cases/
+    total_cases are the raw test counts for display ("3 / 5 케이스"). Both come from the
+    grader reporting which case ids passed; the host owns the weight mapping.
+    """
     hit = _resolve(problem_id)
     if not hit:
-        return {"passed": 0, "total": 0}
+        return _zero()
     slug, meta = hit
     image = (meta.get("submission") or {}).get("runtime") or "judge-py:base"
     hidden = meta.get("hidden") or {}
@@ -98,7 +109,7 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     workdir = ATTEMPTS / attempt_id
     hidden_dir = PROBLEMS / slug / "hidden"
     if not workdir.exists() or not hidden_dir.exists():
-        return {"passed": 0, "total": 0}
+        return _zero()
 
     # throwaway grading dir; world-readable so the unprivileged container user can read it
     grade_dir = ATTEMPTS / f"{attempt_id}__grade_{uuid.uuid4().hex[:8]}"
@@ -136,18 +147,37 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     finally:
         shutil.rmtree(grade_dir, ignore_errors=True)
 
-    defined_total = len(hidden.get("cases", []))
+    # The grader reports which case ids passed; the host maps them to meta.json weights so
+    # weighting is consistent across domains and both numbers (weighted score + raw case
+    # count) fall out here. A legacy aggregate GRADE:{"passed":N,"total":M} is still accepted
+    # (count-based, no per-case weighting) for any grader that hasn't migrated. total_cases /
+    # the weighted total come from meta, so a miscount can't change the denominator.
+    cases = hidden.get("cases", [])
+    weights = {c["id"]: c.get("weight", 1) for c in cases}
+    total_cases = len(cases)
+    weighted_total = sum(weights.values()) or total_cases
 
+    data = {}
     m = re.search(r"GRADE:(\{.*\})", out)
-    if not m:
-        return {"passed": 0, "total": defined_total}
-    try:
-        data = json.loads(m.group(1))
-        passed = int(data.get("passed", 0))
-        total = int(data.get("total", 0))
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return {"passed": 0, "total": defined_total}
+    if m:
+        try:
+            data = json.loads(m.group(1))
+        except (json.JSONDecodeError, ValueError):
+            data = {}
 
-    # meta.json hidden.cases 개수가 권위있는 total — pytest 수집 실패 시에도 올바른 분모 유지
-    authoritative_total = defined_total or total
-    return {"passed": min(passed, authoritative_total), "total": authoritative_total}
+    if "passed_ids" in data:
+        passed_ids = set(data["passed_ids"]) & set(weights)  # only declared cases count
+        passed_cases = len(passed_ids)
+        passed = sum(weights[i] for i in passed_ids)
+        return {"passed": passed, "total": weighted_total,
+                "passed_cases": passed_cases, "total_cases": total_cases}
+
+    # legacy aggregate: count-based, since there are no per-case ids to weight by
+    try:
+        p = int(data.get("passed", 0))
+    except (TypeError, ValueError):
+        p = 0
+    passed_cases = min(p, total_cases) if total_cases else p
+    total = total_cases or int(data.get("total", 0) or 0)
+    return {"passed": passed_cases, "total": total,
+            "passed_cases": passed_cases, "total_cases": total or passed_cases}

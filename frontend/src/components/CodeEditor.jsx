@@ -110,7 +110,6 @@ export default function CodeEditor({ path, content, locked, saving, onSave }) {
               onClick={save}
               title="저장 (⌘S)"
             >
-              {dirty && <span className={styles.dot} />}
               <Save size={13} />
               {saving ? '저장 중…' : '저장 ⌘S'}
             </button>
