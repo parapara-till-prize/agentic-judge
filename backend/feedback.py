@@ -7,11 +7,19 @@ case. It reuses agent.get_client()/agent.MODEL (one env-configured OpenAI-compat
 {"overall": str, "feedbacks": [{"test": str, "hint": str}, ...]}.
 """
 import json
+import re
 from pathlib import Path
 
 import agent
 
 PROMPT = (Path(__file__).parent / "prompts" / "feedback.md").read_text()
+
+# Tolerant field extractors for when the model's JSON is *almost* valid (a stray unescaped
+# quote, a trailing comma, extra prose) and json.loads rejects the whole blob. Each captures
+# a JSON string body: any escaped char (\\.) or any char that isn't a quote/backslash.
+_STR = r'"((?:\\.|[^"\\])*)"'
+_OVERALL_RE = re.compile(r'"overall"\s*:\s*' + _STR)
+_PAIR_RE = re.compile(r'"test"\s*:\s*' + _STR + r'\s*,\s*"hint"\s*:\s*' + _STR)
 
 
 def _build_prompt(problem: str, code: str, failed_tests: list) -> str:
@@ -31,38 +39,69 @@ def _build_prompt(problem: str, code: str, failed_tests: list) -> str:
     return prompt
 
 
-def _parse(content: str) -> dict:
-    """Pull the {overall, feedbacks} object out of the reply, tolerating fences / stray prose.
+def _unescape(s: str) -> str:
+    """Turn a captured JSON string body back into text (\\n, \\", \\uXXXX). Falls back to the
+    raw capture if it isn't cleanly decodable."""
+    try:
+        return json.loads(f'"{s}"')
+    except (json.JSONDecodeError, ValueError):
+        return s
 
-    Small models often wrap JSON in ``` fences or add a preamble; we scan for the first
-    balanced {...} that parses and carries an "overall" key. On total failure we surface the
-    raw text as `overall` so the user still sees something instead of a blank panel.
+
+def _parse(content: str) -> dict:
+    """Pull {overall, feedbacks:[{test,hint}]} out of the reply, three escalating ways.
+
+    1. Clean: the first balanced {...} that json.loads-es and carries "overall" — handles
+       fenced or preamble-wrapped JSON (the balanced scan skips ``` and stray prose).
+    2. Tolerant: if no blob parses (a stray unescaped quote / trailing comma breaks
+       json.loads), regex the `overall` line and every `test`/`hint` pair straight out of the
+       text, so we STILL render a one-liner + per-test hints instead of dumping raw JSON.
+    3. Last resort: surface the raw text as `overall` so the panel is never blank.
     """
-    content = content or ""
+    content = (content or "").strip()
+
+    # 1) clean parse
     for start, end in agent._balanced_json_spans(content):
         try:
             obj = json.loads(content[start:end])
         except (json.JSONDecodeError, ValueError):
             continue
         if isinstance(obj, dict) and "overall" in obj:
-            feedbacks = []
-            for f in obj.get("feedbacks") or []:
-                if isinstance(f, dict):
-                    feedbacks.append(
-                        {"test": str(f.get("test", "")), "hint": str(f.get("hint", ""))}
-                    )
+            feedbacks = [
+                {"test": str(f.get("test", "")), "hint": str(f.get("hint", ""))}
+                for f in (obj.get("feedbacks") or [])
+                if isinstance(f, dict)
+            ]
             return {"overall": str(obj.get("overall", "")).strip(), "feedbacks": feedbacks}
 
+    # 2) tolerant field extraction from near-JSON
+    om = _OVERALL_RE.search(content)
+    pairs = _PAIR_RE.findall(content)
+    if om or pairs:
+        overall = _unescape(om.group(1)).strip() if om else ""
+        feedbacks = [{"test": _unescape(t), "hint": _unescape(h)} for t, h in pairs]
+        return {"overall": overall, "feedbacks": feedbacks}
+
+    # 3) nothing structured recoverable
     fallback = " ".join(content.split())[:300]
     return {"overall": fallback or "피드백을 생성하지 못했어요.", "feedbacks": []}
 
 
 def generate_feedback(problem: str, code: str, failed_tests: list, client=None) -> dict:
-    """One synchronous LLM call -> {overall, feedbacks}. `client` is injectable for tests."""
+    """One synchronous LLM call -> {overall, feedbacks}. `client` is injectable for tests.
+
+    LLM/transport errors are turned into a friendly {overall, feedbacks: []} (still HTTP 200)
+    rather than bubbling up to a 500: an unhandled 500 reaches the browser as an opaque
+    "Failed to fetch" (Starlette drops CORS headers on exception responses), so the panel
+    could never explain what went wrong. Returning the reason lets the UI show + offer retry.
+    """
     client = client or agent.get_client()
     prompt = _build_prompt(problem, code, failed_tests)
-    resp = client.chat.completions.create(
-        model=agent.MODEL,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        resp = client.chat.completions.create(
+            model=agent.MODEL,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except Exception as e:  # noqa: BLE001 — any LLM/transport failure -> readable message
+        return {"overall": f"AI 피드백 생성에 실패했어요. (모델 호출 오류: {str(e)[:160]})", "feedbacks": []}
     return _parse(resp.choices[0].message.content)
