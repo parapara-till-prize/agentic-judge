@@ -1,0 +1,86 @@
+/* Override sonner's defaults to the arena look. The local class is combined with sonner's
+   runtime `[data-sonner-toast]` attribute so we win specificity without !important. */
+.toast[data-sonner-toast] {
+  font-family: var(--sans);
+  background: var(--surface);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 13px 15px;
+  gap: 11px;
+  align-items: center;
+  letter-spacing: -0.005em;
+}
+
+.title[data-title] {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-h);
+  letter-spacing: -0.01em;
+}
+.description[data-description] {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* icon slot — neutral by default, tinted per type below */
+.icon[data-icon] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+/* per-type accents (data-type lives on the toast element) */
+.toast[data-type='success'] {
+  border-left-color: var(--accent);
+}
+.toast[data-type='success'] [data-icon] {
+  color: var(--accent);
+}
+.toast[data-type='error'] {
+  border-left-color: var(--danger);
+}
+.toast[data-type='error'] [data-icon] {
+  color: var(--danger);
+}
+.toast[data-type='warning'] {
+  border-left-color: var(--warn);
+}
+.toast[data-type='warning'] [data-icon] {
+  color: var(--warn);
+}
+.toast[data-type='info'] [data-icon] {
+  color: var(--text-muted);
+}
+
+/* action / cancel / close buttons */
+.actionButton[data-button] {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+}
+.cancelButton[data-button] {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.closeButton[data-close-button] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.closeButton[data-close-button]:hover {
+  background: var(--surface-2);
+  color: var(--text-h);
+}
