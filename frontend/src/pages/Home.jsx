@@ -75,7 +75,7 @@ export default function Home() {
               <b>검증</b>해요.
             </div>
             <button
-              className={styles.createBtn}
+              className={`btn btn--primary ${styles.createBtn}`}
               onClick={() => navigate('/problems/create')}
             >
               + 문제 만들기
