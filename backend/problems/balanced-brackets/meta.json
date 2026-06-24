@@ -1,6 +1,11 @@
 {
   "id": 1031,
   "title": "괄호 짝 맞추기",
+  "runtime": {
+    "image": "judge-py:base",
+    "test_cmd": "python3 -m pytest tests -q",
+    "grade_cmd": "python3 run_grade.py"
+  },
   "difficulty": "basic",
   "category": "알고리즘",
   "domain": "algorithm",

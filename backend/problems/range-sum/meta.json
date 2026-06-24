@@ -1,6 +1,11 @@
 {
   "id": 1024,
   "title": "구간 합 구하기",
+  "runtime": {
+    "image": "judge-py:base",
+    "test_cmd": "python3 -m pytest tests -q",
+    "grade_cmd": "python3 run_grade.py"
+  },
   "difficulty": "mid",
   "category": "알고리즘",
   "domain": "algorithm",

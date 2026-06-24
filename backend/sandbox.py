@@ -14,15 +14,16 @@ BASE = Path(__file__).parent
 ATTEMPTS = BASE / "attempts"
 
 MAX_OUTPUT = 8000  # truncate tool output so giant logs can't blow up the LLM context
-IMAGE = "judge-py:base"
+DEFAULT_IMAGE = "judge-py:base"  # per-problem image overrides this (meta.runtime.image)
 
 
-def run_in_container(workdir: Path, command: str) -> str:
+def run_in_container(workdir: Path, command: str, image: str = DEFAULT_IMAGE) -> str:
     """Run `command` inside a disposable, locked-down container over the workdir.
 
-    Security flags are mandatory: no network, capped memory/pids, unprivileged user.
-    Two timeouts: inner `timeout 5` kills runaway code; outer subprocess timeout=15 is the
-    backstop if docker itself hangs.
+    `image` is the problem's runtime (judge-py / judge-node / judge-sql / …). Security
+    flags are mandatory: no network, capped memory/pids, unprivileged user. Two timeouts:
+    inner `timeout 5` kills runaway code; outer subprocess timeout=15 is the backstop if
+    docker itself hangs.
     """
     try:
         r = subprocess.run(
@@ -34,7 +35,7 @@ def run_in_container(workdir: Path, command: str) -> str:
                 "--user", "nobody",
                 "-v", f"{workdir}:/work",
                 "-w", "/work",
-                IMAGE,
+                image or DEFAULT_IMAGE,
                 "timeout", "5", "bash", "-c", command,
             ],
             capture_output=True, text=True, timeout=15,
@@ -45,7 +46,7 @@ def run_in_container(workdir: Path, command: str) -> str:
     return out[:MAX_OUTPUT]
 
 
-def run_tool(attempt_id: str, name: str, args: dict) -> str:
+def run_tool(attempt_id: str, name: str, args: dict, image: str = DEFAULT_IMAGE) -> str:
     """Dispatch one agent tool call. File ops on host, run_command in container."""
     workdir = ATTEMPTS / attempt_id
 
@@ -67,6 +68,6 @@ def run_tool(attempt_id: str, name: str, args: dict) -> str:
         return f"wrote {args['path']}"
 
     if name == "run_command":
-        return run_in_container(workdir, args["command"])
+        return run_in_container(workdir, args["command"], image)
 
     return f"[error] unknown tool: {name}"

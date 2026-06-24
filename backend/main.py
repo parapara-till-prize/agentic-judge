@@ -236,9 +236,15 @@ def post_message(attempt_id: str, body: Message):
             raise HTTPException(404, "unknown attempt")
         history = list(attempt.history)
 
+    # per-problem runtime: which image to run in + how the agent should run visible tests
+    _slug, meta = _resolve(attempt.problem_id)
+    runtime = meta.get("runtime", {})
+    image = runtime.get("image") or "judge-py:base"
+    test_cmd = runtime.get("test_cmd")
+
     def gen():
         final = None
-        for ev in agent.stream_turn(attempt_id, history, body.text):
+        for ev in agent.stream_turn(attempt_id, history, body.text, image=image, test_cmd=test_cmd):
             if ev["type"] == "done":
                 final = ev
                 break
