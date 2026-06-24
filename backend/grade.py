@@ -25,27 +25,32 @@ BASE = Path(__file__).parent
 # Injected into grade_dir for pytest-hidden problems that have no run_grade.py.
 # Counts results via a pytest collector plugin (report.when == "call") rather than scraping
 # stdout — string-matching pytest's output is fragile (e.g. `-v` appends `[ 16%]` so a line
-# never ends in "PASSED"). Prints GRADE: JSON. Mirrors the shipped run_grade.py graders.
-_PYTEST_GRADE_SCRIPT = """\
+# never ends in "PASSED"). Per-case weights come from meta.json hidden.cases (id == test
+# function name) and are baked into the script, since the container can't read meta.json: a
+# passing test contributes its declared weight, total is the sum of weights, and any test not
+# declared as a case contributes 0 so `passed` can't exceed `total`. Prints GRADE: JSON.
+def _pytest_grade_script(cases: list) -> str:
+    weights = {c["id"]: c.get("weight", 1) for c in cases}
+    return f"""\
 import json
 import pytest
+
+_WEIGHTS = {weights!r}
 
 
 class _Collector:
     def __init__(self):
         self.passed = 0
-        self.total = 0
 
     def pytest_runtest_logreport(self, report):
-        if report.when == "call":
-            self.total += 1
-            if report.passed:
-                self.passed += 1
+        if report.when == "call" and report.passed:
+            name = report.nodeid.split("::")[-1]
+            self.passed += _WEIGHTS.get(name, 0)
 
 
 _c = _Collector()
 pytest.main(["test_hidden.py", "-q", "--tb=no", "-p", "no:cacheprovider"], plugins=[_c])
-print("GRADE:" + json.dumps({"passed": _c.passed, "total": _c.total}))
+print("GRADE:" + json.dumps({{"passed": _c.passed, "total": sum(_WEIGHTS.values())}}))
 """
 
 PROBLEMS = BASE / "problems"
@@ -123,7 +128,9 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
             shutil.copy2(p, dest)
         # 3) inject run_grade.py for pytest-hidden if hidden/ didn't supply one
         if kind == "pytest-hidden" and not (grade_dir / "run_grade.py").exists():
-            (grade_dir / "run_grade.py").write_text(_PYTEST_GRADE_SCRIPT)
+            (grade_dir / "run_grade.py").write_text(
+                _pytest_grade_script(hidden.get("cases", []))
+            )
         # make everything readable by `nobody` in the bind mount
         for root, dirs, files in os.walk(grade_dir):
             for d in dirs:
@@ -136,7 +143,13 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     finally:
         shutil.rmtree(grade_dir, ignore_errors=True)
 
-    defined_total = len(hidden.get("cases", []))
+    # 권위있는 분모는 meta.json에서 — 하네스가 오집계해도 올바른 total 유지.
+    # pytest-hidden은 case weight 합, 그 외(sql/browser)는 case당 1점.
+    cases = hidden.get("cases", [])
+    if kind == "pytest-hidden":
+        defined_total = sum(c.get("weight", 1) for c in cases)
+    else:
+        defined_total = len(cases)
 
     m = re.search(r"GRADE:(\{.*\})", out)
     if not m:
@@ -148,6 +161,5 @@ def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
     except (json.JSONDecodeError, TypeError, ValueError):
         return {"passed": 0, "total": defined_total}
 
-    # meta.json hidden.cases 개수가 권위있는 total — pytest 수집 실패 시에도 올바른 분모 유지
     authoritative_total = defined_total or total
     return {"passed": min(passed, authoritative_total), "total": authoritative_total}

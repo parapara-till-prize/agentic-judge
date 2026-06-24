@@ -115,19 +115,17 @@ problems/<slug>/
 - 정상 INSERT/SELECT가 기대 결과를 반환하는지 확인
 - `run_tests.py`는 `schema.sql` + `solution.sql`을 순서대로 실행
 
-### frontend
+### frontend — `browser-visible`
 
 ```json
 "open": {
-  "kind": "css-visible",
-  "cmd": "node /runners/run_fe.js --mode=open",
-  "required_selectors": [".sidebar", ".grid", ".card"]
+  "kind": "browser-visible",
+  "cmd": "node tests/run_visible.js"
 }
 ```
 
-- CSS 파싱 에러 없음
-- 헤드리스 브라우저로 렌더링 성공
-- `required_selectors` 의 모든 요소가 화면에 존재하고 스타일이 적용됨
+- SQL의 `sql-visible`과 동형 — 문제별 visible 스크립트(`tests/run_visible.js`)에 위임
+- 헤드리스 브라우저로 렌더링 성공 + 문제별 기본 단언(요소 존재·스타일 적용 등) 통과
 
 ---
 
@@ -149,17 +147,8 @@ problems/<slug>/
 
 - `id` = `hidden/test_hidden.py` 안의 함수명과 **정확히 일치**해야 함
 - `weight` = 해당 케이스가 accuracy에 기여하는 상대적 비중
-- 성능 제한이 필요한 경우 `limits` 추가:
-
-```json
-"hidden": {
-  "kind": "pytest-perf",
-  "limits": { "time_ms": 2000, "mem_mb": 256 },
-  "cases": [
-    { "id": "test_perf_large", "weight": 3 }
-  ]
-}
-```
+- `run_grade.py` 없이도 grade.py가 weight 인식 grader를 주입한다: `passed`는 통과 케이스의
+  weight 합, `total`은 전체 weight 합 (`cases`에 없는 테스트는 0점 → `passed ≤ total` 보장)
 
 ### sql — `sql-scenarios`
 
@@ -180,32 +169,10 @@ problems/<slug>/
 - `run_grade.py` 출력: `GRADE:{"passed": N, "total": M}`
 - `cases`는 **문서화 목적** — 러너는 `cmd`에 위임, weight는 grader에서 직접 집계
 
-### frontend — `dom-style-assert`
-
-```json
-"hidden": {
-  "kind": "dom-style-assert",
-  "viewport": { "w": 1280, "h": 800 },
-  "cases": [
-    { "id": "sidebar_width",  "selector": ".sidebar", "prop": "width",   "expect": "240px", "weight": 2 },
-    { "id": "grid_display",   "selector": ".grid",    "prop": "display", "expect": "grid",  "weight": 2 },
-    { "id": "card_shadow",    "selector": ".card",    "prop": "boxShadow","expect": "*",    "weight": 1 }
-  ],
-  "visual": { "max_diff_ratio": 0.03, "weight": 3 }
-}
-```
-
-- `selector` + `prop` + `expect`: Playwright `getComputedStyle` 단언
-- `expect: "*"` = 값이 default(`none`/`0px`/`normal`)가 아니면 통과
-- `visual`: 레퍼런스 스크린샷(`hidden/ref/desktop.png`)과 픽셀 diff 비율
-- ⚠️ 단일 뷰포트 computed-style 단언만 가능 — **반응형(뷰포트 전환)·axe a11y 같은
-  검사는 표현 불가**. 그런 문제는 아래 `browser-scenarios`(문제별 그레이더)를 쓴다.
-- 실행 경로(`/runners/run_fe.js` 마운트 + grade.py 라우팅)는 **아직 미배선**.
-
 ### frontend — `browser-scenarios` (문제별 그레이더, sql-scenarios와 동형)
 
-`dom-style-assert`로 표현 못 하는 검사(뷰포트 전환, 박스 기하, axe-core 등)는 SQL의
-`sql-scenarios`와 같은 방식 — 문제별 `cmd` 그레이더에 위임한다. `open`도 동일하게
+선언형 computed-style 단언으로 표현 못 하는 검사(뷰포트 전환, 박스 기하, axe-core 등)는
+SQL의 `sql-scenarios`와 같은 방식 — 문제별 `cmd` 그레이더에 위임한다. `open`도 동일하게
 문제별 visible 스크립트를 가리킨다(`sql-visible`이 `run_tests.py`를 가리키는 것과 동형).
 
 ```json
@@ -227,8 +194,7 @@ problems/<slug>/
 - `run_grade.js`는 헤드리스 브라우저를 직접 띄워 데스크톱/모바일 레이아웃·추천 카드 구분·
   axe-core 접근성을 검증하고 `GRADE:{"passed":N,"total":M}` 출력 (sql-scenarios와 동일 계약)
 - `cases`는 **문서화·분모 용도** — grade.py가 `hidden.cases` 개수를 authoritative total로 사용
-- 현재 유일한 frontend 문제 `responsive-pricing`이 이 형식을 쓴다 (`dom-style-assert`는 향후
-  `run_fe.js` 배선 후 선언형 옵션)
+- 현재 유일한 frontend 문제 `responsive-pricing`이 이 형식을 쓴다
 
 ---
 
@@ -310,44 +276,41 @@ problems/<slug>/
 }
 ```
 
-### Frontend (`flex-card-layout` — 예시)
+### Frontend (`responsive-pricing`)
 
 ```json
 {
   "schema_version": 2,
-  "id": 3002,
-  "title": "카드 리스트 레이아웃",
+  "id": 3001,
+  "title": "반응형 요금제 카드",
   "type": "frontend",
-  "category": "CSS 레이아웃",
-  "difficulty": "basic",
-  "skills": ["Flexbox", "반응형"],
-  "submission": { "entry": "solution.css", "runtime": "judge-browser:base" },
+  "category": "반응형 레이아웃",
+  "difficulty": "mid",
+  "skills": ["반응형", "Flexbox/Grid", "접근성"],
+  "submission": { "entry": "index.html", "runtime": "judge-browser:base" },
   "open": {
-    "kind": "css-visible",
-    "cmd": "node /runners/run_fe.js --mode=open",
-    "required_selectors": [".container", ".card", ".card-title"]
+    "kind": "browser-visible",
+    "cmd": "node tests/run_visible.js"
   },
   "hidden": {
-    "kind": "dom-style-assert",
-    "viewport": { "w": 1280, "h": 800 },
+    "kind": "browser-scenarios",
+    "cmd": "node run_grade.js",
     "cases": [
-      { "id": "container_flex",   "selector": ".container", "prop": "display",      "expect": "flex",     "weight": 2 },
-      { "id": "container_wrap",   "selector": ".container", "prop": "flexWrap",     "expect": "wrap",     "weight": 1 },
-      { "id": "card_width",       "selector": ".card",      "prop": "width",        "expect": "300px",    "weight": 2 },
-      { "id": "card_shadow",      "selector": ".card",      "prop": "boxShadow",    "expect": "*",        "weight": 1 },
-      { "id": "title_bold",       "selector": ".card-title","prop": "fontWeight",   "expect": "700",      "weight": 1 }
-    ],
-    "visual": { "max_diff_ratio": 0.03, "weight": 3 }
+      { "id": "layout_row",        "weight": 1 },
+      { "id": "equal_width",       "weight": 1 },
+      { "id": "featured_distinct", "weight": 1 },
+      { "id": "responsive_stack",  "weight": 2 },
+      { "id": "accessibility",     "weight": 2 }
+    ]
   },
   "scoring": {
     "axes": [
-      { "key": "accuracy",         "weight": 0.65 },
-      { "key": "turn_efficiency",  "weight": 0.20 },
-      { "key": "token_efficiency", "weight": 0.15 }
+      { "key": "accuracy",         "weight": 0.70 },
+      { "key": "turn_efficiency",  "weight": 0.18 },
+      { "key": "token_efficiency", "weight": 0.12 }
     ]
   },
-  "par": { "turns": 3, "tokens": 6000, "time_sec": 540 },
-  "trap_note": "naive display:block으로 세로 나열은 open 통과하지만 flex+wrap+고정너비 없어서 hidden 실패."
+  "trap_note": "naive fixed-px inline-block row with no media query passes the visible 'three cards render' check but fails hidden: no <768px stacking, unequal widths, featured card not distinguished, and missing button text / heading semantics trip axe-core."
 }
 ```
 
