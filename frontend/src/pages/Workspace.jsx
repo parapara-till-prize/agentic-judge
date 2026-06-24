@@ -7,6 +7,7 @@ import Markdown from '../components/Markdown'
 import CodeEditor from '../components/CodeEditor'
 import { useProblem, useStartAttempt, useSubmit, useSaveFile, useRunTests, useMe } from '../api/queries'
 import { streamMessage } from '../api/stream'
+import { BASE_URL } from '../api/client'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
 import ResultModal from '../components/ResultModal'
@@ -352,7 +353,10 @@ export default function Workspace() {
               </div>
               <div className={styles.accBody}>
                 {statement ? (
-                  <Markdown source={statement} />
+                  <Markdown
+                    source={statement}
+                    assetBase={`${BASE_URL}/problems/${id}/assets/`}
+                  />
                 ) : (
                   <span style={{ color: 'var(--text-dim)' }}>불러오는 중…</span>
                 )}
