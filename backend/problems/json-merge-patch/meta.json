@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "json-merge-patch",
+  "title": "JSON 머지 패치",
+  "category": "API 구현",
+  "domain": "backend",
+  "difficulty": "hard",
+  "skills": ["재귀", "명세 해석"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["apply_patch(doc, patch) -> dict"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "RFC 7386: null deletes key, objects merge recursively, arrays replace wholesale, type changes allowed. naive dict.update misses all of these."
+  },
+  "hidden_tests": [
+    { "id": "test_shallow_merge", "weight": 1 },
+    { "id": "test_null_deletes", "weight": 2 },
+    { "id": "test_nested_merge", "weight": 2 },
+    { "id": "test_array_replace", "weight": 1 },
+    { "id": "test_type_change", "weight": 1 },
+    { "id": "test_add_key", "weight": 1 }
+  ],
+  "par": { "turns": 7, "tokens": 14000, "time_sec": 1080 }
+}

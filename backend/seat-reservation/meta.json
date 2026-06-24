@@ -1,0 +1,19 @@
+{
+  "schema_version": 1, "id": "seat-reservation", "title": "선착순 좌석 예약",
+  "category": "동시성", "domain": "concurrency", "difficulty": "hard",
+  "skills": ["원자성", "saga", "멱등성", "긴장형"],
+  "submission": { "format": "single_file", "runtime": "python3.12", "entry": "repo/solution.py",
+    "functions": ["reserve(store, seat_id, user_id, idem_key) -> dict", "cancel(store, reservation_id) -> dict"] },
+  "harness": "concurrency",
+  "spec": { "public_ratio": 0.7,
+    "hidden_trap_note": "tension: overbooking vs perf. need atomic seat decrement + hold/confirm saga (release on payment fail) + idempotency. naive lock-or-rescan fails perf or partial-failure." },
+  "hidden_tests": [
+    { "id": "test_overbooking", "weight": 2 },
+    { "id": "test_perf", "weight": 2 },
+    { "id": "test_partial_failure", "weight": 2 },
+    { "id": "test_idempotency", "weight": 1 },
+    { "id": "test_deadlock_free", "weight": 1 },
+    { "id": "test_cancel_rebook", "weight": 2 }
+  ],
+  "par": { "turns": 12, "tokens": 25000, "time_sec": 2100 }
+}

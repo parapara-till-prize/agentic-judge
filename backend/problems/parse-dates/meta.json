@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "parse-dates",
+  "title": "날짜 파싱",
+  "category": "데이터 정제",
+  "domain": "etl",
+  "difficulty": "mid",
+  "skills": ["날짜 파싱", "다중 포맷"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["parse_dates(rows) -> list"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "multiple formats (ISO, M/D/YY, 'Mon D YYYY'); invalid -> None; M/D convention; trim ws. naive single-format fails."
+  },
+  "hidden_tests": [
+    { "id": "test_iso", "weight": 1 },
+    { "id": "test_slash_short", "weight": 2 },
+    { "id": "test_month_name", "weight": 2 },
+    { "id": "test_invalid_skip", "weight": 1 },
+    { "id": "test_ambiguous", "weight": 1 },
+    { "id": "test_trailing_ws", "weight": 1 }
+  ],
+  "par": { "turns": 5, "tokens": 9000, "time_sec": 720 }
+}

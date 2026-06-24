@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "clean-numbers",
+  "title": "숫자 정제",
+  "category": "데이터 정제",
+  "domain": "etl",
+  "difficulty": "basic",
+  "skills": ["문자열 정제", "타입 변환"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["clean_numbers(rows) -> list"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "naive int(x) raises: must strip thousands comma, blank -> None, trim ws, handle negative/decimal/currency."
+  },
+  "hidden_tests": [
+    { "id": "test_thousands_comma", "weight": 2 },
+    { "id": "test_blank_to_none", "weight": 2 },
+    { "id": "test_trim_ws", "weight": 1 },
+    { "id": "test_negative", "weight": 1 },
+    { "id": "test_decimal", "weight": 1 },
+    { "id": "test_currency", "weight": 1 }
+  ],
+  "par": { "turns": 3, "tokens": 6000, "time_sec": 540 }
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "validate-signup",
+  "title": "회원가입 검증",
+  "category": "API 구현",
+  "domain": "backend",
+  "difficulty": "mid",
+  "skills": ["입력 검증", "정규식"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["validate_signup(payload) -> dict"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "must check email format, password rules, trim email, reject undefined fields, guard non-str types. naive presence-only check fails."
+  },
+  "hidden_tests": [
+    { "id": "test_required_fields", "weight": 1 },
+    { "id": "test_email_format", "weight": 2 },
+    { "id": "test_password_rule", "weight": 2 },
+    { "id": "test_trims", "weight": 1 },
+    { "id": "test_reject_extra", "weight": 1 },
+    { "id": "test_type_confusion", "weight": 1 }
+  ],
+  "par": { "turns": 5, "tokens": 9000, "time_sec": 720 }
+}

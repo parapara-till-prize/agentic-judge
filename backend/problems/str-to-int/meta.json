@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "str-to-int",
+  "title": "문자열을 정수로 변환",
+  "category": "알고리즘",
+  "domain": "algorithm",
+  "difficulty": "mid",
+  "skills": ["문자열", "파싱"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["my_atoi(s) -> int"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "naive int(s) raises on '4d2', no int32 clamp, no empty/invalid -> 0. Must skip leading ws, parse sign, stop at first non-digit, clamp to [-2^31, 2^31-1]."
+  },
+  "hidden_tests": [
+    { "id": "test_leading_ws", "weight": 1 },
+    { "id": "test_sign", "weight": 1 },
+    { "id": "test_stop_at_nondigit", "weight": 2 },
+    { "id": "test_int32_clamp", "weight": 2 },
+    { "id": "test_empty_invalid_zero", "weight": 1 },
+    { "id": "test_plus_sign", "weight": 1 }
+  ],
+  "par": { "turns": 4, "tokens": 7000, "time_sec": 600 }
+}

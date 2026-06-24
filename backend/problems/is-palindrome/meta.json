@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "is-palindrome",
+  "title": "회문 판별",
+  "category": "알고리즘",
+  "domain": "algorithm",
+  "difficulty": "basic",
+  "skills": ["문자열", "투 포인터"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["is_palindrome(s) -> bool"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "naive s==s[::-1] passes visible but fails hidden: must consider only alphanumerics and ignore case. '.,!' -> True (no alnum)."
+  },
+  "hidden_tests": [
+    { "id": "test_basic", "weight": 1 },
+    { "id": "test_ignore_punctuation", "weight": 2 },
+    { "id": "test_case_insensitive", "weight": 2 },
+    { "id": "test_empty", "weight": 1 },
+    { "id": "test_single_char", "weight": 1 },
+    { "id": "test_alnum_only", "weight": 1 }
+  ],
+  "par": { "turns": 3, "tokens": 5000, "time_sec": 480 }
+}

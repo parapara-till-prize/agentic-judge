@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "dedup-merge",
+  "title": "중복 제거·병합",
+  "category": "데이터 정제",
+  "domain": "etl",
+  "difficulty": "hard",
+  "skills": ["병합 규칙", "순서 보존"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["dedup_merge(records) -> list"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "dedup by id (case-insensitive); conflict: latest non-null wins; preserve first-appearance order; records missing id pass through; multi-field conflicts."
+  },
+  "hidden_tests": [
+    { "id": "test_dedup_key", "weight": 1 },
+    { "id": "test_latest_nonnull_wins", "weight": 2 },
+    { "id": "test_preserve_order", "weight": 2 },
+    { "id": "test_case_insensitive_key", "weight": 1 },
+    { "id": "test_missing_key", "weight": 1 },
+    { "id": "test_conflict_resolution", "weight": 1 }
+  ],
+  "par": { "turns": 7, "tokens": 14000, "time_sec": 1080 }
+}

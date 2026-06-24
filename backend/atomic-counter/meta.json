@@ -1,0 +1,18 @@
+{
+  "schema_version": 1, "id": "atomic-counter", "title": "원자적 카운터",
+  "category": "동시성", "domain": "concurrency", "difficulty": "basic",
+  "skills": ["원자성", "경쟁 상태"],
+  "submission": { "format": "single_file", "runtime": "python3.12", "entry": "repo/solution.py",
+    "functions": ["increment(store) -> int"] },
+  "harness": "concurrency",
+  "spec": { "public_ratio": 0.7,
+    "hidden_trap_note": "naive get+set loses updates under concurrency; must use store.incr (atomic)." },
+  "hidden_tests": [
+    { "id": "test_single_inc", "weight": 1 },
+    { "id": "test_concurrent_no_lost_update", "weight": 3 },
+    { "id": "test_idempotent_init", "weight": 1 },
+    { "id": "test_final_count", "weight": 2 },
+    { "id": "test_interleave_stress", "weight": 1 }
+  ],
+  "par": { "turns": 4, "tokens": 8000, "time_sec": 600 }
+}

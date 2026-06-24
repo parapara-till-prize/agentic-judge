@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "paginate",
+  "title": "페이지네이션",
+  "category": "API 구현",
+  "domain": "backend",
+  "difficulty": "basic",
+  "skills": ["슬라이싱", "경계 처리"],
+  "submission": {
+    "format": "single_file",
+    "runtime": "python3.12",
+    "entry": "repo/solution.py",
+    "functions": ["paginate(items, page, size) -> dict"]
+  },
+  "harness": "pytest-function",
+  "spec": {
+    "public_ratio": 0.7,
+    "hidden_trap_note": "naive slicing breaks: out-of-range page must return empty (not error), size<=0 must raise, total_pages is ceil, page is 1-indexed."
+  },
+  "hidden_tests": [
+    { "id": "test_first_page", "weight": 1 },
+    { "id": "test_last_partial", "weight": 2 },
+    { "id": "test_out_of_range_empty", "weight": 2 },
+    { "id": "test_size_zero_guard", "weight": 1 },
+    { "id": "test_total_pages_ceil", "weight": 1 },
+    { "id": "test_one_indexed", "weight": 1 }
+  ],
+  "par": { "turns": 3, "tokens": 6000, "time_sec": 540 }
+}

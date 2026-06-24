@@ -1,0 +1,18 @@
+{
+  "schema_version": 1, "id": "inventory-purchase", "title": "재고 차감",
+  "category": "동시성", "domain": "concurrency", "difficulty": "mid",
+  "skills": ["원자성", "멱등성"],
+  "submission": { "format": "single_file", "runtime": "python3.12", "entry": "repo/solution.py",
+    "functions": ["purchase(store, item, idem_key=None) -> dict"] },
+  "harness": "concurrency",
+  "spec": { "public_ratio": 0.7,
+    "hidden_trap_note": "last-item concurrent purchase must not oversell; same idem_key must charge once. naive get+set oversells." },
+  "hidden_tests": [
+    { "id": "test_basic_purchase", "weight": 1 },
+    { "id": "test_no_oversell_concurrent", "weight": 3 },
+    { "id": "test_out_of_stock", "weight": 1 },
+    { "id": "test_idempotent_purchase", "weight": 2 },
+    { "id": "test_restock", "weight": 1 }
+  ],
+  "par": { "turns": 8, "tokens": 16000, "time_sec": 1200 }
+}
