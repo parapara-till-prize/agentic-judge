@@ -6,16 +6,35 @@ import styles from '../styles/pages/ProblemCreate.module.css'
 
 const STEPS = ['기본 정보', '스토리 & 의도', '생성 결과', '확인 & 등록']
 
-const DIFFICULTY_OPTIONS = [
-  { value: 'basic', label: '초급' },
-  { value: 'mid', label: '중급' },
-  { value: 'hard', label: '고급' },
+const TYPE_OPTIONS = [
+  { value: 'algorithm', label: '알고리즘' },
+  { value: 'sql',       label: 'SQL 쿼리' },
+  { value: 'frontend',  label: '프론트엔드' },
 ]
 
-const SKILL_SUGGESTIONS = [
-  '배열', '문자열', '정규식', '재귀', '해시맵',
-  '스택', '큐', '정렬', '이분탐색', '그래프',
+const DIFFICULTY_OPTIONS = [
+  { value: 'basic', label: '초급' },
+  { value: 'mid',   label: '중급' },
+  { value: 'hard',  label: '고급' },
 ]
+
+const SKILL_SUGGESTIONS = {
+  algorithm: ['배열', '문자열', '정규식', '재귀', '해시맵', '스택', '큐', '정렬', '이분탐색', '그래프'],
+  sql:       ['SELECT', 'GROUP BY', 'JOIN', 'WHERE', '서브쿼리', 'HAVING', 'ORDER BY', 'DISTINCT', 'NULL 처리'],
+  frontend:  ['HTML', 'CSS', 'JavaScript', 'Flexbox', 'Grid', '반응형', 'DOM 조작', '이벤트 핸들링', 'position', '접근성'],
+}
+
+const STORY_PLACEHOLDER = {
+  algorithm: '예: 서버 로그 포맷이 바뀌어서 타임스탬프가 추가됐다. 기존 parse() 함수를 새 포맷에 맞게 수정해야 한다.',
+  sql:       '예: 회사 HR 시스템에서 각 부서의 활성 직원 평균 급여를 조회해야 한다. 퇴직자는 제외해야 한다.',
+  frontend:  '예: 쇼핑몰 상품 목록 페이지에 스크롤해도 상단에 고정되는 네비게이션 바를 구현해야 한다.',
+}
+
+const INTENT_PLACEHOLDER = {
+  algorithm: '예: parse()를 수정한 후 호출하는 다른 파일들도 같이 업데이트해야 한다는 것을 놓치면 실패',
+  sql:       '예: WHERE active=1 없이 GROUP BY만 쓰면 퇴직자 포함 평균이 나와서 실패. 퇴직자만 있는 부서는 결과에서 제외해야 함.',
+  frontend:  '예: position:sticky 대신 fixed를 쓰면 레이아웃이 깨지고, 모바일 뷰포트에서 햄버거 메뉴 없으면 실패',
+}
 
 export default function ProblemCreate() {
   const navigate = useNavigate()
@@ -37,6 +56,10 @@ export default function ProblemCreate() {
   const publish = usePublishProblem()
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  function changeType(e) {
+    setForm((f) => ({ ...f, type: e.target.value, skills: [] }))
+  }
 
   function addSkill(s) {
     const v = s.trim()
@@ -77,6 +100,10 @@ export default function ProblemCreate() {
     })
     navigate(`/problem/${res.id}`)
   }
+
+  const typeLabel = TYPE_OPTIONS.find((t) => t.value === form.type)?.label ?? ''
+  const diffLabel = DIFFICULTY_OPTIONS.find((d) => d.value === form.difficulty)?.label ?? ''
+  const suggestions = SKILL_SUGGESTIONS[form.type] ?? []
 
   return (
     <div className={styles.page}>
@@ -131,8 +158,10 @@ export default function ProblemCreate() {
 
             <label className={styles.label}>
               유형
-              <select className={styles.select} value={form.type} onChange={setField('type')}>
-                <option value="algorithm">알고리즘</option>
+              <select className={styles.select} value={form.type} onChange={changeType}>
+                {TYPE_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
               </select>
             </label>
 
@@ -169,7 +198,7 @@ export default function ProblemCreate() {
                 </button>
               </div>
               <div className={styles.skillChips}>
-                {SKILL_SUGGESTIONS.filter((s) => !form.skills.includes(s)).map((s) => (
+                {suggestions.filter((s) => !form.skills.includes(s)).map((s) => (
                   <button key={s} type="button" className={styles.suggestion} onClick={() => addSkill(s)}>
                     {s}
                   </button>
@@ -210,7 +239,7 @@ export default function ProblemCreate() {
                 rows={4}
                 value={form.story}
                 onChange={setField('story')}
-                placeholder="예: 서버 로그 포맷이 바뀌어서 타임스탬프가 추가됐다. 기존 parse() 함수를 새 포맷에 맞게 수정해야 한다."
+                placeholder={STORY_PLACEHOLDER[form.type]}
               />
               <span className={styles.charCount}>{form.story.length}자</span>
             </label>
@@ -226,7 +255,7 @@ export default function ProblemCreate() {
                 rows={3}
                 value={form.intent}
                 onChange={setField('intent')}
-                placeholder="예: parse()를 수정한 후 호출하는 다른 파일들도 같이 업데이트해야 한다는 것을 놓치면 실패"
+                placeholder={INTENT_PLACEHOLDER[form.type]}
               />
             </label>
 
@@ -249,13 +278,13 @@ export default function ProblemCreate() {
                 <p className={styles.genErrorTitle}>모범답안 검증 실패 — 다시 생성해보세요</p>
                 {!generate.data.visible_ok && (
                   <details>
-                    <summary>test_visible.py 출력</summary>
+                    <summary>visible 테스트 출력</summary>
                     <pre className={styles.pre}>{generate.data.visible_output}</pre>
                   </details>
                 )}
                 {!generate.data.hidden_ok && (
                   <details>
-                    <summary>test_hidden.py 출력</summary>
+                    <summary>hidden 채점 출력</summary>
                     <pre className={styles.pre}>{generate.data.hidden_output}</pre>
                   </details>
                 )}
@@ -282,13 +311,15 @@ export default function ProblemCreate() {
               />
             </div>
 
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <span>test_visible.py</span>
-                <span className={styles.readonlyTag}>읽기 전용</span>
+            {(generated.preview_files ?? []).map((file) => (
+              <div key={file.name} className={styles.section}>
+                <div className={styles.sectionHead}>
+                  <span>{file.name}</span>
+                  <span className={styles.readonlyTag}>읽기 전용</span>
+                </div>
+                <pre className={styles.pre}>{file.content}</pre>
               </div>
-              <pre className={styles.pre}>{generated.test_visible_py}</pre>
-            </div>
+            ))}
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
@@ -322,11 +353,10 @@ export default function ProblemCreate() {
                 <span>제목</span><strong>{form.title}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>유형</span><strong>알고리즘</strong>
+                <span>유형</span><strong>{typeLabel}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>난이도</span>
-                <strong>{DIFFICULTY_OPTIONS.find((d) => d.value === form.difficulty)?.label}</strong>
+                <span>난이도</span><strong>{diffLabel}</strong>
               </div>
               <div className={styles.summaryRow}>
                 <span>스킬</span>

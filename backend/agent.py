@@ -17,9 +17,9 @@ import sandbox
 
 # --- prompts & tool schemas (data, not code; edit the files under prompts/) ------------
 PROMPTS = Path(__file__).parent / "prompts"
-SYSTEM_PROMPT = (PROMPTS / "system.md").read_text().strip()
-TEST_INSTRUCTIONS = (PROMPTS / "test_instructions.md").read_text().strip()
-TOOLS = json.loads((PROMPTS / "tools.json").read_text())
+SYSTEM_PROMPT = (PROMPTS / "system.md").read_text(encoding="utf-8").strip()
+TEST_INSTRUCTIONS = (PROMPTS / "test_instructions.md").read_text(encoding="utf-8").strip()
+TOOLS = json.loads((PROMPTS / "tools.json").read_text(encoding="utf-8"))
 TOOL_NAMES = {t["function"]["name"] for t in TOOLS}
 
 # --- model config (env; OpenAI-compatible so Ollama <-> hosted is a one-liner) ---------

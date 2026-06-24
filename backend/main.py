@@ -15,7 +15,7 @@ BASE = Path(__file__).parent
 # at import time). No external dotenv dependency — tiny KEY=VALUE parser.
 _envf = BASE / ".env"
 if _envf.exists():
-    for _line in _envf.read_text().splitlines():
+    for _line in _envf.read_text(encoding="utf-8").splitlines():
         _line = _line.strip()
         if _line and not _line.startswith("#") and "=" in _line:
             _k, _v = _line.split("=", 1)
@@ -75,7 +75,7 @@ class Credentials(BaseModel):
 
 class GenerateProblem(BaseModel):
     title: str
-    type: str        # algorithm (only supported type for now)
+    type: str        # algorithm | sql | frontend
     difficulty: str  # basic / mid / hard
     skills: list[str]
     story: str       # 2–4 sentence problem context (input to Gemini)
@@ -136,7 +136,7 @@ def _workspace_files(attempt_id: str) -> list:
         if not p.is_file() or _skip & set(p.parts):
             continue
         try:
-            content = p.read_text()[:MAX_OUTPUT]
+            content = p.read_text(encoding="utf-8", errors="replace")[:MAX_OUTPUT]
         except UnicodeDecodeError:
             content = "<binary>"
         out.append({"path": str(p.relative_to(wd)), "content": content})
@@ -169,7 +169,7 @@ def _index() -> dict:
         mf = d / "meta.json"
         if not mf.exists():
             continue
-        m = json.loads(mf.read_text())
+        m = json.loads(mf.read_text(encoding="utf-8"))
         if "id" in m:
             idx[str(m["id"])] = (d.name, m)
     return idx
@@ -212,7 +212,7 @@ def get_problem(problem_id: str):
     with Session(engine) as session:
         card = _problem_card(str(m["id"]), slug, m, session)
     statement_file = PROBLEMS / slug / "statement.md"
-    card["statement"] = statement_file.read_text() if statement_file.exists() else ""
+    card["statement"] = statement_file.read_text(encoding="utf-8") if statement_file.exists() else ""
     return card
 
 
@@ -225,7 +225,7 @@ def start_attempt(body: StartAttempt, user: str = Depends(auth.get_current_user)
 
     attempt_id = uuid.uuid4().hex
     shutil.copytree(src, ATTEMPTS / attempt_id)
-    statement = (PROBLEMS / slug / "statement.md").read_text()
+    statement = (PROBLEMS / slug / "statement.md").read_text(encoding="utf-8")
 
     with Session(engine) as session:
         session.add(Attempt(id=attempt_id, problem_id=str(m["id"]), user=user))
@@ -414,7 +414,7 @@ def generate_problem_route(body: GenerateProblem, user: str = Depends(auth.get_c
     except Exception as e:
         raise HTTPException(502, f"Gemini 생성 실패: {e}")
 
-    validation = gen.validate_generated(generated)
+    validation = gen.validate_generated(generated, body.type)
     if not validation["ok"]:
         return {
             "ok": False,
@@ -430,20 +430,31 @@ def generate_problem_route(body: GenerateProblem, user: str = Depends(auth.get_c
     token = gen.issue_token({
         "slug": slug,
         "meta": meta,
-        "files": {
-            "statement_md": generated["statement_md"],
-            "starter_solution_py": generated["starter_solution_py"],
-            "test_visible_py": generated["test_visible_py"],
-            "test_hidden_py": generated["test_hidden_py"],
-        },
+        "files": {**generated, "statement_md": generated["statement_md"]},
     })
+
+    # Build preview files based on problem type
+    if body.type == "algorithm":
+        preview_files = [{"name": "test_visible.py", "content": generated["test_visible_py"]}]
+    elif body.type == "sql":
+        preview_files = [
+            {"name": "schema.sql", "content": generated["schema_sql"]},
+            {"name": "run_tests.py", "content": generated["run_tests_py"]},
+        ]
+    elif body.type == "frontend":
+        preview_files = [
+            {"name": "index.html", "content": generated["starter_html"]},
+            {"name": "run_visible.js", "content": generated["run_visible_js"]},
+        ]
+    else:
+        preview_files = []
 
     return {
         "ok": True,
         "validated_token": token,
         "slug": slug,
         "statement_md": generated["statement_md"],
-        "test_visible_py": generated["test_visible_py"],
+        "preview_files": preview_files,
         "hidden_cases": generated["hidden_cases"],
     }
 

@@ -67,14 +67,14 @@ def _resolve(problem_id: str):
             if not mf.exists():
                 continue
             try:
-                if str(json.loads(mf.read_text()).get("id")) == pid:
+                if str(json.loads(mf.read_text(encoding="utf-8")).get("id")) == pid:
                     slug = d.name
                     break
             except (json.JSONDecodeError, ValueError):
                 continue
         if slug is None:
             return None
-    return slug, json.loads((PROBLEMS / slug / "meta.json").read_text())
+    return slug, json.loads((PROBLEMS / slug / "meta.json").read_text(encoding="utf-8"))
 
 
 def run_hidden_tests(attempt_id: str, problem_id: str) -> dict:
