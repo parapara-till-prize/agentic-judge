@@ -5,7 +5,7 @@ import Select from '../components/Select'
 import SkillFilter from '../components/SkillFilter'
 import Toggle from '../components/Toggle'
 import { Badge, DomainTag, Chip, StatusDot } from '../components/ui'
-import { TRACKS } from '../data/mock'
+import { TRACKS } from '../data/constants'
 import { useProblems } from '../api/queries'
 import { useUiStore } from '../store/uiStore'
 import styles from './Home.module.css'
@@ -69,10 +69,10 @@ export default function Home() {
           {/* hero */}
           <div className={styles.hero}>
             <div className={styles.kicker}>AGENTIC&nbsp;CODING&nbsp;ARENA</div>
-            <div className={styles.title}>AI를 부려서 코드를 짜라.</div>
+            <div className={styles.title}>AI를 부려서 코드를 짜요.</div>
             <div className={styles.sub}>
-              당신은 테크리드, AI는 주니어. 한 줄도 직접 타이핑하지 않고{' '}
-              <b>자연어 지시</b>만으로 문제를 통과시켜라.
+              당신은 테크리드, AI는 주니어예요. 한 줄도 직접 타이핑하지 않고{' '}
+              <b>자연어 지시</b>만으로 문제를 통과시켜 보세요.
             </div>
           </div>
 
@@ -165,11 +165,11 @@ export default function Home() {
           {isLoading && <div className={styles.empty}>문제를 불러오는 중…</div>}
           {isError && (
             <div className={styles.empty}>
-              문제를 불러오지 못했습니다. {error?.message}
+              문제를 불러오지 못했어요. {error?.message}
             </div>
           )}
           {!isLoading && !isError && rows.length === 0 && (
-            <div className={styles.empty}>조건에 맞는 문제가 없습니다.</div>
+            <div className={styles.empty}>조건에 맞는 문제가 없어요.</div>
           )}
         </div>
       </main>
