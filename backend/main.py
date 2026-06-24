@@ -439,22 +439,31 @@ def submit(attempt_id: str):
 
 @app.post("/problems/generate")
 def generate_problem_route(body: GenerateProblem, user: str = Depends(auth.get_current_user)):
-    """Call Gemini to generate all problem files, validate with model answer, return token."""
+    """Call Gemini to generate all problem files, validate with model answer, return token.
+    1회 자동 재시도: 검증 실패 시 Gemini를 한 번 더 호출해 새 코드로 재검증."""
     import generate as gen
 
-    try:
-        generated = gen.call_gemini(
-            title=body.title,
-            problem_type=body.type,
-            difficulty=body.difficulty,
-            skills=body.skills,
-            story=body.story,
-            intent=body.intent,
-        )
-    except Exception as e:
-        raise HTTPException(502, f"Gemini 생성 실패: {e}")
+    generated = None
+    validation = None
+    for attempt in range(2):
+        try:
+            generated = gen.call_gemini(
+                title=body.title,
+                problem_type=body.type,
+                difficulty=body.difficulty,
+                skills=body.skills,
+                story=body.story,
+                intent=body.intent,
+            )
+        except Exception as e:
+            if attempt == 0:
+                continue  # 생성 자체 실패 → 한 번 더 시도
+            raise HTTPException(502, f"Gemini 생성 실패: {e}")
 
-    validation = gen.validate_generated(generated, body.type)
+        validation = gen.validate_generated(generated, body.type)
+        if validation["ok"]:
+            break  # 검증 통과
+
     if not validation["ok"]:
         return {
             "ok": False,

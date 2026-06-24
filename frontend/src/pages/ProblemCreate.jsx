@@ -275,18 +275,22 @@ export default function ProblemCreate() {
             )}
             {generate.data && !generate.data.ok && (
               <div className={styles.genError}>
-                <p className={styles.genErrorTitle}>모범답안 검증 실패 — 다시 생성해보세요</p>
+                <p className={styles.genErrorTitle}>모범답안 검증 실패 (자동 재시도 후에도 실패)</p>
                 {!generate.data.visible_ok && (
-                  <details>
-                    <summary>visible 테스트 출력</summary>
-                    <pre className={styles.pre}>{generate.data.visible_output}</pre>
-                  </details>
+                  <div className={styles.outputBlock}>
+                    <p className={styles.outputLabel}>visible 테스트 출력</p>
+                    <pre className={styles.pre}>
+                      {generate.data.visible_output || '(출력 없음 — Docker 이미지 미빌드일 수 있음)'}
+                    </pre>
+                  </div>
                 )}
                 {!generate.data.hidden_ok && (
-                  <details>
-                    <summary>hidden 채점 출력</summary>
-                    <pre className={styles.pre}>{generate.data.hidden_output}</pre>
-                  </details>
+                  <div className={styles.outputBlock}>
+                    <p className={styles.outputLabel}>hidden 채점 출력</p>
+                    <pre className={styles.pre}>
+                      {generate.data.hidden_output || '(출력 없음 — Docker 이미지 미빌드일 수 있음)'}
+                    </pre>
+                  </div>
                 )}
               </div>
             )}

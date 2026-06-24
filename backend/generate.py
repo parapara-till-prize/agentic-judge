@@ -413,11 +413,21 @@ def validate_generated(generated: dict, problem_type: str = "algorithm") -> dict
     raise ValueError(f"알 수 없는 유형: {problem_type}")
 
 
+_CONFTEST = """\
+# pytest가 어떤 하위 디렉터리에서 실행되더라도 repo 루트를 sys.path에 추가해
+# `from solution import ...` 가 항상 동작하도록 한다.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+"""
+
+
 def _validate_algo(generated: dict) -> dict:
     work_dir = ATTEMPTS / f"__gen_val_{uuid.uuid4().hex[:8]}"
     work_dir.mkdir(parents=True)
     try:
         (work_dir / "solution.py").write_text(generated["model_answer_py"], encoding="utf-8")
+        (work_dir / "conftest.py").write_text(_CONFTEST, encoding="utf-8")
         tests = work_dir / "tests"
         tests.mkdir()
         (tests / "test_visible.py").write_text(generated["test_visible_py"], encoding="utf-8")
@@ -439,27 +449,35 @@ def _validate_algo(generated: dict) -> dict:
 
 
 def _validate_sql(generated: dict) -> dict:
-    work_dir = ATTEMPTS / f"__gen_val_{uuid.uuid4().hex[:8]}"
-    work_dir.mkdir(parents=True)
-    try:
-        (work_dir / "schema.sql").write_text(generated["schema_sql"], encoding="utf-8")
-        (work_dir / "solution.sql").write_text(generated["model_answer_sql"], encoding="utf-8")
-        (work_dir / "run_tests.py").write_text(generated["run_tests_py"], encoding="utf-8")
-        (work_dir / "run_grade.py").write_text(generated["run_grade_py"], encoding="utf-8")
-        _chmod_r(work_dir)
+    """Docker 없이 Python 프로세스에서 직접 실행 (sqlite3는 stdlib)."""
+    import subprocess
+    import sys as _sys
+    import tempfile
 
-        visible_out = sandbox.run_in_container(
-            work_dir, "python3 run_tests.py 2>&1", "judge-sql:base")
-        hidden_out = sandbox.run_in_container(
-            work_dir, "python3 run_grade.py 2>&1", "judge-sql:base")
+    with tempfile.TemporaryDirectory() as tmp_str:
+        tmp = Path(tmp_str)
+        (tmp / "schema.sql").write_text(generated["schema_sql"], encoding="utf-8")
+        (tmp / "solution.sql").write_text(generated["model_answer_sql"], encoding="utf-8")
+        (tmp / "run_tests.py").write_text(generated["run_tests_py"], encoding="utf-8")
+        (tmp / "run_grade.py").write_text(generated["run_grade_py"], encoding="utf-8")
 
-        visible_ok = "통과" in visible_out and "실패" not in visible_out
-        hidden_ok = _grade_all_passed(hidden_out)
-        return {"ok": visible_ok and hidden_ok,
-                "visible_ok": visible_ok, "visible_output": visible_out,
-                "hidden_ok": hidden_ok, "hidden_output": hidden_out}
-    finally:
-        shutil.rmtree(work_dir, ignore_errors=True)
+        vis_r = subprocess.run(
+            [_sys.executable, "run_tests.py"],
+            cwd=tmp_str, capture_output=True, text=True, timeout=15,
+        )
+        visible_out = vis_r.stdout + vis_r.stderr
+
+        hid_r = subprocess.run(
+            [_sys.executable, "run_grade.py"],
+            cwd=tmp_str, capture_output=True, text=True, timeout=15,
+        )
+        hidden_out = hid_r.stdout + hid_r.stderr
+
+    visible_ok = "통과" in visible_out and "실패" not in visible_out
+    hidden_ok = _grade_all_passed(hidden_out)
+    return {"ok": visible_ok and hidden_ok,
+            "visible_ok": visible_ok, "visible_output": visible_out,
+            "hidden_ok": hidden_ok, "hidden_output": hidden_out}
 
 
 def _validate_frontend(generated: dict) -> dict:
@@ -564,6 +582,7 @@ def _save_algo(prob: Path, files: dict) -> None:
     repo = prob / "repo"
     repo.mkdir(exist_ok=True)
     (repo / "solution.py").write_text(files["starter_solution_py"], encoding="utf-8")
+    (repo / "conftest.py").write_text(_CONFTEST, encoding="utf-8")
     tests = repo / "tests"
     tests.mkdir(exist_ok=True)
     (tests / "test_visible.py").write_text(files["test_visible_py"], encoding="utf-8")
