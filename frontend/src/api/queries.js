@@ -149,3 +149,23 @@ export function useSubmit(attemptId) {
     },
   })
 }
+
+// --- problem generation ----------------------------------------------------
+export function useGenerateProblem() {
+  return useMutation({
+    mutationFn: (body) =>
+      apiFetch('/problems/generate', { method: 'POST', body }),
+  })
+}
+
+export function usePublishProblem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) =>
+      apiFetch('/problems/publish', { method: 'POST', body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.problems })
+      toast.success('문제가 등록됐어요')
+    },
+  })
+}

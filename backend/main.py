@@ -73,6 +73,20 @@ class Credentials(BaseModel):
     password: str
 
 
+class GenerateProblem(BaseModel):
+    title: str
+    type: str        # algorithm (only supported type for now)
+    difficulty: str  # basic / mid / hard
+    skills: list[str]
+    story: str       # 2–4 sentence problem context (input to Gemini)
+    intent: str      # hidden trap/goal (Gemini only, never shown to agents)
+
+
+class PublishProblem(BaseModel):
+    validated_token: str
+    statement_md: str | None = None  # overrides generated version if user edited it
+
+
 # --- auth (session cookie) --------------------------------------------------
 def _set_session_cookie(response: Response, token: str):
     response.set_cookie(
@@ -384,6 +398,73 @@ def submit(attempt_id: str):
         "axes": scored["axes"],
         "feedback": feedback,
     }
+
+
+@app.post("/problems/generate")
+def generate_problem_route(body: GenerateProblem, user: str = Depends(auth.get_current_user)):
+    """Call Gemini to generate all problem files, validate with model answer, return token."""
+    import generate as gen
+
+    try:
+        generated = gen.call_gemini(
+            title=body.title,
+            problem_type=body.type,
+            difficulty=body.difficulty,
+            skills=body.skills,
+            story=body.story,
+            intent=body.intent,
+        )
+    except Exception as e:
+        raise HTTPException(502, f"Gemini 생성 실패: {e}")
+
+    validation = gen.validate_generated(generated)
+    if not validation["ok"]:
+        return {
+            "ok": False,
+            "visible_ok": validation["visible_ok"],
+            "visible_output": validation["visible_output"],
+            "hidden_ok": validation["hidden_ok"],
+            "hidden_output": validation["hidden_output"],
+        }
+
+    slug = gen._slug(body.title)
+    meta = gen.build_meta(slug, body.title, body.type, body.difficulty,
+                          body.skills, generated["hidden_cases"])
+    token = gen.issue_token({
+        "slug": slug,
+        "meta": meta,
+        "files": {
+            "statement_md": generated["statement_md"],
+            "starter_solution_py": generated["starter_solution_py"],
+            "test_visible_py": generated["test_visible_py"],
+            "test_hidden_py": generated["test_hidden_py"],
+        },
+    })
+
+    return {
+        "ok": True,
+        "validated_token": token,
+        "slug": slug,
+        "statement_md": generated["statement_md"],
+        "test_visible_py": generated["test_visible_py"],
+        "hidden_cases": generated["hidden_cases"],
+    }
+
+
+@app.post("/problems/publish")
+def publish_problem_route(body: PublishProblem, user: str = Depends(auth.get_current_user)):
+    """Consume validated_token and write problem files to disk."""
+    import generate as gen
+
+    data = gen.consume_token(body.validated_token)
+    if not data:
+        raise HTTPException(400, "validated_token이 만료됐거나 유효하지 않습니다 (10분 이내에 등록해주세요)")
+
+    if body.statement_md is not None:
+        data["files"]["statement_md"] = body.statement_md
+
+    gen.save_problem(data["slug"], data["meta"], data["files"])
+    return {"ok": True, "id": data["slug"]}
 
 
 @app.get("/leaderboard")
