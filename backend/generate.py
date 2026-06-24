@@ -37,9 +37,10 @@ def _gemini_model():
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY 환경변수가 설정되지 않았습니다")
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
-        "gemini-2.0-flash",
+        model_name,
         generation_config={"response_mime_type": "application/json"},
     )
 
