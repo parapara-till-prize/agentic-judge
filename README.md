@@ -9,7 +9,7 @@
 
 <br/>
 
-[![2026 세종대학교 AI SW 해커톤](https://img.shields.io/badge/2026-세종대%20AI%20SW%20해커톤-2ea44f?style=for-the-badge)](#)
+[![2026 세종대학교 AI SW 해커톤 최우수상](https://img.shields.io/badge/🏆_2026_세종대_AI_SW_해커톤-최우수상-FFD700?style=for-the-badge)](#)
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
@@ -291,7 +291,7 @@ docs/
 
 ## 👥 팀
 
-> **2026 세종대학교 AI SW 해커톤** 출품작
+> 🏆 **2026 세종대학교 AI SW 해커톤 최우수상** 수상작
 
 <table>
   <tr>
